@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Checkbox, Field, Input, Select } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, DataTable, type Column } from '@/components/ui/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, toAppError, unwrap } from '@/lib/errors';
 import type { DocumentType } from '@/types/db';
 import { qk, useDocumentTypes, useSaveSetting, useSetting } from '../../hooks/queries';
@@ -239,9 +239,9 @@ function TypeForm({ type, existing, onDone }: { type: DocumentType | null; exist
     try {
       if (isNew) {
         const sortOrder = Math.max(0, ...existing.map((t) => t.sort_order)) + 10;
-        unwrap(await supabase.from('document_types').insert({ key, owner_type: s.owner_type, sort_order: sortOrder, ...fields }).select('key'));
+        unwrap(await api.from('document_types').insert({ key, owner_type: s.owner_type, sort_order: sortOrder, ...fields }).select('key'));
       } else {
-        unwrap(await supabase.from('document_types').update(fields).eq('key', type.key).select('key'));
+        unwrap(await api.from('document_types').update(fields).eq('key', type.key).select('key'));
       }
       await queryClient.invalidateQueries({ queryKey: qk.documentTypes });
       toast.success(isNew ? `Added “${label}”.` : `Saved “${label}”.`);

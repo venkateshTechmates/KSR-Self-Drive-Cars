@@ -3,7 +3,7 @@ import { DOC_OWNER_TYPES, DOC_STATUSES, type DocOwnerType, type DocStatus } from
 import { KYC_DOC_TYPES } from '@shared/documents.ts';
 import { addDaysIso, isIsoDate, istStartOfDay } from '@shared/time.ts';
 import { normalizePhone } from '@shared/validation.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { toAppError, unwrap } from '@/lib/errors';
 import type { DocumentRow } from '@/types/db';
 import { cleanSearch, searchCustomers } from '../customers/customerSearch';
@@ -72,7 +72,7 @@ const DOC_SELECT =
 
 async function bookingIdsFor(customerIds: string[], limit = 100): Promise<string[]> {
   if (customerIds.length === 0) return [];
-  const rows = (unwrap(await supabase.from('bookings').select('id').in('customer_id', customerIds).limit(limit)) ?? []) as Array<{ id: string }>;
+  const rows = (unwrap(await api.from('bookings').select('id').in('customer_id', customerIds).limit(limit)) ?? []) as Array<{ id: string }>;
   return rows.map((r) => r.id);
 }
 
@@ -92,7 +92,7 @@ async function documentSearchFilter(raw: string): Promise<string | null> {
   const [customers, cars, codeBookings] = await Promise.all([
     isCode ? Promise.resolve([]) : searchCustomers(t, { limit: 15, includeErased: true }),
     compact.length >= 2 && !isCode
-      ? supabase
+      ? api
           .from('cars')
           .select('id')
           .or(`registration_number.ilike."%${looseRegistration(compact)}%",display_name.ilike."%${t}%"`)
@@ -100,7 +100,7 @@ async function documentSearchFilter(raw: string): Promise<string | null> {
           .then((r) => (unwrap(r) ?? []) as Array<{ id: string }>)
       : Promise.resolve([]),
     isCode
-      ? supabase
+      ? api
           .from('bookings')
           .select('id')
           .ilike('booking_code', `%${t.toUpperCase().replace(/\s/g, '')}%`)
@@ -121,7 +121,7 @@ async function documentSearchFilter(raw: string): Promise<string | null> {
 }
 
 export async function fetchDocuments(f: DocFilters, q: string, todayIso: string, limit: number): Promise<{ rows: DocListRow[]; total: number }> {
-  let query = supabase.from('documents').select(DOC_SELECT, { count: 'exact' }).is('deleted_at', null);
+  let query = api.from('documents').select(DOC_SELECT, { count: 'exact' }).is('deleted_at', null);
   if (f.category) query = query.eq('owner_type', f.category);
   if (f.type) query = query.eq('doc_type', f.type);
   if (f.status === 'current') query = query.neq('status', 'superseded');
@@ -164,7 +164,7 @@ export interface DocAlerts {
 /** Counts for the summary at the top (DOC-12, DSH-05). */
 export async function fetchDocAlerts(todayIso: string): Promise<DocAlerts> {
   const base = () =>
-    supabase.from('documents').select('id', { count: 'exact', head: true }).is('deleted_at', null).neq('status', 'superseded');
+    api.from('documents').select('id', { count: 'exact', head: true }).is('deleted_at', null).neq('status', 'superseded');
   const [expired, expiring, pending] = await Promise.all([
     base().eq('owner_type', 'car').lt('expiry_date', todayIso),
     base().eq('owner_type', 'car').gte('expiry_date', todayIso).lte('expiry_date', addDaysIso(todayIso, 30)),
@@ -175,7 +175,7 @@ export async function fetchDocAlerts(todayIso: string): Promise<DocAlerts> {
 }
 
 export async function fetchDocument(id: string): Promise<DocumentRow | null> {
-  return unwrap(await supabase.from('documents').select('*').eq('id', id).maybeSingle()) as DocumentRow | null;
+  return unwrap(await api.from('documents').select('*').eq('id', id).maybeSingle()) as DocumentRow | null;
 }
 
 /** Owner label for a document row, e.g. for screen-reader names. */

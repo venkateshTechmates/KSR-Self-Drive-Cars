@@ -1,4 +1,4 @@
-// Row types for the tables and views in supabase/migrations. Keep in step with the SQL.
+// Row types for the tables and views in server/db/schema.sql. Keep in step with the schema.
 import type {
   AppRole,
   BodyType,

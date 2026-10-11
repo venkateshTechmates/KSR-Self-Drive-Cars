@@ -1,5 +1,5 @@
 // Turn database, edge-function and network errors into messages people can act on.
-// SQL functions raise with: message = human text, detail = machine code, hint = optional JSON.
+// Server business errors carry: message = human text, details = machine code, hint = optional JSON.
 
 export class AppError extends Error {
   code: string | null;
@@ -59,7 +59,7 @@ export function toAppError(err: unknown): AppError {
 
 export const errorMessage = (err: unknown) => toAppError(err).message;
 
-/** Throw if a supabase-js result carries an error; return the data otherwise. */
+/** Throw if an API result carries an error; return the data otherwise. */
 export function unwrap<T>(result: { data: T | null; error: unknown }): T {
   if (result.error) throw toAppError(result.error);
   return result.data as T;

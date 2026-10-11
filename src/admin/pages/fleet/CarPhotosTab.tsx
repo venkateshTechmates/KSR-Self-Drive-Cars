@@ -12,7 +12,7 @@ import { ConfirmDialog, Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { carPhotoPaths, carPhotoSrcSet, carPhotoUrl } from '@/lib/carPhotos';
 import { cn } from '@/lib/cn';
 import { errorMessage, toAppError, unwrap } from '@/lib/errors';
@@ -85,7 +85,7 @@ export function CarPhotosTab({ car }: { car: Car }) {
     try {
       await Promise.all(
         changed.map((p) =>
-          supabase
+          api
             .from('car_photos')
             .update({ sort_order: p.sort_order })
             .eq('id', p.id)
@@ -126,7 +126,7 @@ export function CarPhotosTab({ car }: { car: Car }) {
   async function makeCover(photo: CarPhoto) {
     setCoverBusy(photo.id);
     try {
-      unwrap(await supabase.from('cars').update({ cover_photo_id: photo.id }).eq('id', car.id).select('id').single());
+      unwrap(await api.from('cars').update({ cover_photo_id: photo.id }).eq('id', car.id).select('id').single());
       await queryClient.invalidateQueries({ queryKey: qk.cars });
       toast.success('Cover photo set');
     } catch (err) {
@@ -138,11 +138,11 @@ export function CarPhotosTab({ car }: { car: Car }) {
 
   async function remove(photo: CarPhoto) {
     if (car.cover_photo_id === photo.id) {
-      unwrap(await supabase.from('cars').update({ cover_photo_id: null }).eq('id', car.id).select('id').single());
+      unwrap(await api.from('cars').update({ cover_photo_id: null }).eq('id', car.id).select('id').single());
     }
-    const { error } = await supabase.storage.from('car-photos').remove(photoFilePaths(photo));
+    const { error } = await api.storage.from('car-photos').remove(photoFilePaths(photo));
     if (error) throw toAppError(error);
-    unwrap(await supabase.from('car_photos').delete().eq('id', photo.id).select('id'));
+    unwrap(await api.from('car_photos').delete().eq('id', photo.id).select('id'));
     await queryClient.invalidateQueries({ queryKey: qk.cars });
     toast.success('Photo deleted');
   }
@@ -422,11 +422,11 @@ function UploadPhotosForm({
             [paths.small, variants.small],
           ];
           for (const [path, blob] of parts) {
-            unwrap(await supabase.storage.from('car-photos').upload(path, blob, { contentType: 'image/webp', upsert: false, cacheControl: '31536000' }));
+            unwrap(await api.storage.from('car-photos').upload(path, blob, { contentType: 'image/webp', upsert: false, cacheControl: '31536000' }));
             uploaded.push(path);
           }
           unwrap(
-            await supabase
+            await api
               .from('car_photos')
               .insert({
                 id,
@@ -443,7 +443,7 @@ function UploadPhotosForm({
           );
         } catch (err) {
           // Don't leave orphan files behind when the row can't be saved.
-          if (uploaded.length) await supabase.storage.from('car-photos').remove(uploaded);
+          if (uploaded.length) await api.storage.from('car-photos').remove(uploaded);
           throw err;
         }
         order += 1;
@@ -457,7 +457,7 @@ function UploadPhotosForm({
     }
     if (firstId && !car.cover_photo_id) {
       try {
-        unwrap(await supabase.from('cars').update({ cover_photo_id: firstId }).eq('id', car.id).select('id').single());
+        unwrap(await api.from('cars').update({ cover_photo_id: firstId }).eq('id', car.id).select('id').single());
       } catch {
         // The cover can be chosen later.
       }
@@ -555,7 +555,7 @@ function AltTextForm({ photo, onClose }: { photo: CarPhoto; onClose: () => void 
     }
     setSaving(true);
     try {
-      unwrap(await supabase.from('car_photos').update({ alt_text: value }).eq('id', photo.id).select('id').single());
+      unwrap(await api.from('car_photos').update({ alt_text: value }).eq('id', photo.id).select('id').single());
       await queryClient.invalidateQueries({ queryKey: qk.cars });
       toast.success('Alt text saved');
       onClose();

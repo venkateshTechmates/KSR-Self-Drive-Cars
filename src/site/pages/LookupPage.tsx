@@ -4,7 +4,7 @@ import { formatWhen } from '@shared/time.ts';
 import { normalizePhone, validatePhone } from '@shared/validation.ts';
 import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input } from '@/components/ui/Field';
-import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage } from '@/lib/errors';
 import { useDocumentMeta } from '@/lib/useDocumentMeta';
 import { SitePage, useContact } from '../components/SiteChrome';
@@ -37,13 +37,9 @@ export default function LookupPage() {
     setErrors(next);
     setResult(null);
     if (Object.keys(next).length) return;
-    if (!isSupabaseConfigured) {
-      setErrors({ form: 'Booking lookup works once the site is connected to its database.' });
-      return;
-    }
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc('lookup_booking', { p_code: code.trim().toUpperCase(), p_phone: normalizePhone(phone) });
+      const { data, error } = await api.rpc('lookup_booking', { p_code: code.trim().toUpperCase(), p_phone: normalizePhone(phone) });
       if (error) throw error;
       setResult(data as LookupResult);
     } catch (err) {

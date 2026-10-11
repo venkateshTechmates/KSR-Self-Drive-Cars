@@ -1,16 +1,18 @@
 import { withDefaults, type SettingsKey, type SettingsMap } from '../shared/settings.ts';
 import { one } from './db/connection.ts';
 
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 /** A settings value merged over defaults (so new fields never arrive undefined). */
 export function getSetting<K extends SettingsKey>(key: K): SettingsMap[K] {
   const row = one<{ value: string }>('SELECT value FROM settings WHERE key = ?', key);
-  let parsed: unknown = null;
-  try {
-    parsed = row ? JSON.parse(row.value) : null;
-  } catch {
-    parsed = null;
-  }
-  return withDefaults(key, parsed);
+  return withDefaults(key, row ? parseJson(row.value) : null);
 }
 
 /** A numeric booking rule (SET-02) with a fallback. */

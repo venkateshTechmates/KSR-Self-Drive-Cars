@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDateTime, formatRupees, paiseToInput, parseRupees } from '@/lib/format';
 import type { Car } from '@/types/db';
@@ -49,7 +49,7 @@ function PriceForm({ car }: { car: Car }) {
     }
     setSaving(true);
     try {
-      unwrap(await supabase.from('cars').update({ price_12h_paise: v12, price_24h_paise: v24 }).eq('id', car.id).select('id').single());
+      unwrap(await api.from('cars').update({ price_12h_paise: v12, price_24h_paise: v24 }).eq('id', car.id).select('id').single());
       await queryClient.invalidateQueries({ queryKey: qk.cars });
       toast.success('Prices saved');
     } catch (err) {

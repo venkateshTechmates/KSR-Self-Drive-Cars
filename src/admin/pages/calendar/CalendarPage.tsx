@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/Dialog';
 import { Alert, Input } from '@/components/ui/Field';
 import { Chip, EmptyState, PageHeader, Toolbar } from '@/components/ui/Layout';
 import { PageSpinner, Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { istDateIso } from '@/lib/format';
@@ -109,7 +109,7 @@ export default function CalendarPage() {
     queryKey: [...qk.bookings, 'calendar', startIso, endIso, showCancelled],
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('bookings')
           .select(CAL_BOOKING_SELECT)
           .in('status', showCancelled ? [...VISIBLE_STATUSES, ...CANCELLED_STATUSES] : VISIBLE_STATUSES)
@@ -126,7 +126,7 @@ export default function CalendarPage() {
     queryKey: [...qk.cars, 'calendar-maintenance', startIso, endIso],
     queryFn: async () =>
       unwrap(
-        await supabase.from('maintenance_windows').select('*').lt('starts_at', endIso).gt('ends_at', startIso).order('starts_at'),
+        await api.from('maintenance_windows').select('*').lt('starts_at', endIso).gt('ends_at', startIso).order('starts_at'),
       ) as MaintenanceWindow[],
     placeholderData: keepPreviousData,
   });
@@ -277,7 +277,7 @@ export default function CalendarPage() {
     setChecking(true);
     try {
       const clashes = (unwrap(
-        await supabase.rpc('car_clashes', {
+        await api.rpc('car_clashes', {
           p_car: carId,
           p_start: new Date(pickup).toISOString(),
           p_end: new Date(ret).toISOString(),
@@ -301,7 +301,7 @@ export default function CalendarPage() {
   async function confirmMove() {
     if (!pending) return;
     unwrap(
-      await supabase.rpc('update_booking', {
+      await api.rpc('update_booking', {
         p_booking: pending.booking.id,
         p_pickup_at: new Date(pending.pickup).toISOString(),
         p_car_id: pending.carId,

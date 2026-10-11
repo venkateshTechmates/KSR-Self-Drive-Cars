@@ -1,0 +1,31 @@
+# Keep the build context small and free of secrets and local data.
+.git
+.github
+.vscode
+.idea
+node_modules
+dist
+dist-ssr
+coverage
+.vite
+*.log
+.DS_Store
+
+# Local data: SQLite database, uploaded files, backups, generated app secret
+data
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Not needed to build or run the service
+supabase
+Docs
+docs
+tests
+Dockerfile
+.dockerignore
+fly.toml
+render.yaml
+railway.json

@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { BOOKING_FLAGS, type BookingStatus } from '@shared/constants.ts';
 import { addDaysIso, istStartOfDay } from '@shared/time.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { toAppError, unwrap } from '@/lib/errors';
 import type { BookingWithRefs, Car, DocumentRow, MaintenanceWindow, UtilisationRow } from '@/types/db';
 import { BOOKING_SELECT } from '../../hooks/bookings';
@@ -11,7 +11,7 @@ import { qk } from '../../hooks/queries';
 
 const REFRESH = { refetchInterval: 120_000 } as const;
 
-const bookings = () => supabase.from('bookings').select(BOOKING_SELECT);
+const bookings = () => api.from('bookings').select(BOOKING_SELECT);
 
 /** DSH-01: Requested bookings, oldest first. */
 export function useRequestedBookings(enabled: boolean) {
@@ -82,7 +82,7 @@ export function useOpenMaintenance(enabled: boolean) {
     ...REFRESH,
     queryFn: async () =>
       unwrap(
-        await supabase.from('maintenance_windows').select('*').gt('ends_at', new Date().toISOString()).order('starts_at'),
+        await api.from('maintenance_windows').select('*').gt('ends_at', new Date().toISOString()).order('starts_at'),
       ) as MaintenanceWindow[],
   });
 }
@@ -127,7 +127,7 @@ export function useCarPaperAlerts(todayIso: string, enabled: boolean) {
     ...REFRESH,
     queryFn: async () => {
       const rows = unwrap(
-        await supabase
+        await api
           .from('documents')
           .select('id, car_id, doc_type, expiry_date, status, version')
           .eq('owner_type', 'car')
@@ -166,7 +166,7 @@ export function usePendingKyc(enabled: boolean) {
     ...REFRESH,
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('documents')
           .select('id, customer_id, doc_type, created_at, uploaded_via, customer:customers(id, full_name)')
           .eq('owner_type', 'customer')
@@ -210,19 +210,19 @@ export function useMonthStats(todayIso: string, enabled: boolean) {
       const to = istStartOfDay(nextIso);
       const until = new Date(Math.min(Date.now(), to.getTime()));
       const [done, pays, util] = await Promise.all([
-        supabase
+        api
           .from('bookings')
           .select('id', { count: 'exact', head: true })
           .in('status', ['returned', 'closed'])
           .gte('actual_return_at', from.toISOString())
           .lt('actual_return_at', to.toISOString()),
-        supabase
+        api
           .from('payments')
           .select('amount_paise, type')
           .in('type', ['rent', 'extra', 'refund'])
           .gte('received_at', from.toISOString())
           .lt('received_at', to.toISOString()),
-        supabase.rpc('report_utilisation', { p_from: from.toISOString(), p_to: until.toISOString() }),
+        api.rpc('report_utilisation', { p_from: from.toISOString(), p_to: until.toISOString() }),
       ]);
       if (done.error) throw toAppError(done.error);
       const payments = unwrap(pays) as { amount_paise: number; type: string }[];

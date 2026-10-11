@@ -14,7 +14,7 @@ import { looksLikeFullAadhaar } from '@shared/validation.ts';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Checkbox, Field, Input, Select, Textarea } from '@/components/ui/Field';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import type { DocumentRow } from '@/types/db';
 import { qk } from '../../hooks/queries';
@@ -53,7 +53,7 @@ function VerifyDocumentBody({ doc, onClose, busy, setBusy }: { doc: DocumentRow;
     setBusy(true);
     try {
       unwrap(
-        await supabase.rpc('verify_document', {
+        await api.rpc('verify_document', {
           p_doc: doc.id,
           p_status: decision,
           p_method: decision === 'verified' ? method : null,
@@ -177,7 +177,7 @@ function VerifyIdentityBody({
     setBusy(true);
     try {
       unwrap(
-        await supabase.rpc('verify_customer_identity', {
+        await api.rpc('verify_customer_identity', {
           p_customer: customerId,
           p_method: method,
           p_aadhaar_last4: isAadhaar ? last4 : null,

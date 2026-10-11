@@ -25,7 +25,7 @@ import { ConfirmDialog } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { AppError, errorMessage, unwrap } from '@/lib/errors';
 import { istDateIso } from '@/lib/format';
@@ -98,7 +98,7 @@ export function CarDetailsForm({ car, nextSortOrder = 0, onSaved }: { car: Car |
       // Friendly uniqueness checks; the database enforces both as well.
       const reg = form.registration_number;
       const filters = [`slug.eq.${form.slug}`, ...(reg ? [`registration_number.eq.${reg}`] : [])];
-      let q = supabase.from('cars').select('id, slug, registration_number').or(filters.join(','));
+      let q = api.from('cars').select('id, slug, registration_number').or(filters.join(','));
       if (car) q = q.neq('id', car.id);
       const taken = unwrap(await q) as Array<Pick<Car, 'id' | 'slug' | 'registration_number'>>;
       const clash: CarFormErrors = {};
@@ -112,8 +112,8 @@ export function CarDetailsForm({ car, nextSortOrder = 0, onSaved }: { car: Car |
       const payload = carPayload(form, isNew);
       const saved = (
         car
-          ? unwrap(await supabase.from('cars').update(payload).eq('id', car.id).select('*').single())
-          : unwrap(await supabase.from('cars').insert(payload).select('*').single())
+          ? unwrap(await api.from('cars').update(payload).eq('id', car.id).select('*').single())
+          : unwrap(await api.from('cars').insert(payload).select('*').single())
       ) as Car;
       await queryClient.invalidateQueries({ queryKey: qk.cars });
       toast.success(car ? 'Car saved' : 'Car added');
@@ -411,14 +411,14 @@ function DeleteCarCard({ car }: { car: Car }) {
   const [confirming, setConfirming] = useState(false);
 
   async function remove() {
-    const photos = unwrap(await supabase.from('car_photos').select('id, car_id, storage_path').eq('car_id', car.id)) as Array<
+    const photos = unwrap(await api.from('car_photos').select('id, car_id, storage_path').eq('car_id', car.id)) as Array<
       Pick<CarPhoto, 'id' | 'car_id' | 'storage_path'>
     >;
-    const deleted = unwrap(await supabase.from('cars').delete().eq('id', car.id).select('id')) as Array<{ id: string }>;
+    const deleted = unwrap(await api.from('cars').delete().eq('id', car.id).select('id')) as Array<{ id: string }>;
     if (!deleted?.length) throw new AppError("This car couldn't be deleted. Only the Owner can delete cars.");
     const paths = photos.flatMap(photoFilePaths);
     if (paths.length) {
-      const { error } = await supabase.storage.from('car-photos').remove(paths);
+      const { error } = await api.storage.from('car-photos').remove(paths);
       if (error) toast.error('The car was deleted, but some photo files could not be removed.');
     }
     queryClient.removeQueries({ queryKey: qk.car(car.id) });

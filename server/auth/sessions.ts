@@ -22,7 +22,7 @@ export function sessionHours(): number {
   return Number.isFinite(h) && h > 0 ? Math.min(h, 12) : 12;
 }
 
-export function createSession(userId: string, ip: string | null, ua: string | null): { token: string; expiresAt: string } {
+export function createSession(userId: string, ip: string | null, ua: string | null): { id: string; token: string; expiresAt: string } {
   const token = randomToken();
   const now = nowIso();
   const expiresAt = new Date(Date.now() + sessionHours() * 3_600_000).toISOString();
@@ -38,7 +38,7 @@ export function createSession(userId: string, ip: string | null, ua: string | nu
     now,
     now,
   );
-  return { token, expiresAt };
+  return { id: sha256Hex(token), token, expiresAt };
 }
 
 /** The live session for a cookie token, or null (expired, revoked, banned user). */

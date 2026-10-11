@@ -5,7 +5,7 @@ import { DOC_OWNER_TYPES, type DocOwnerType } from '@shared/constants.ts';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Select } from '@/components/ui/Field';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatWhen } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -62,7 +62,7 @@ function UploadTargetForm({ onClose, onChoose }: { onClose: () => void; onChoose
     setFinding(true);
     try {
       const found = unwrap(
-        await supabase
+        await api
           .from('bookings')
           .select('id, booking_code, pickup_at, car:cars(display_name), customer:customers(full_name)')
           .eq('booking_code', c)

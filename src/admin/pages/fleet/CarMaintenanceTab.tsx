@@ -13,7 +13,7 @@ import { ConfirmDialog, Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDuration } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
@@ -52,7 +52,7 @@ export function CarMaintenanceTab({ car }: { car: Car }) {
   ];
 
   async function remove(w: MaintenanceWindow) {
-    unwrap(await supabase.from('maintenance_windows').delete().eq('id', w.id).select('id'));
+    unwrap(await api.from('maintenance_windows').delete().eq('id', w.id).select('id'));
     await queryClient.invalidateQueries({ queryKey: qk.cars });
     toast.success('Maintenance removed');
   }
@@ -213,10 +213,10 @@ function MaintenanceForm({
     begin();
     try {
       const clashes = (unwrap(
-        await supabase.rpc('car_clashes', { p_car: car.id, p_start: range.s.toISOString(), p_end: range.e.toISOString(), p_exclude: null }),
+        await api.rpc('car_clashes', { p_car: car.id, p_start: range.s.toISOString(), p_end: range.e.toISOString(), p_exclude: null }),
       ) ?? []) as Clash[];
       const requested = unwrap(
-        await supabase
+        await api
           .from('bookings')
           .select('id, booking_code, status, pickup_at, return_due_at')
           .eq('car_id', car.id)
@@ -251,10 +251,10 @@ function MaintenanceForm({
     try {
       const row = { starts_at: range.s.toISOString(), ends_at: range.e.toISOString(), reason, notes: notes.trim() };
       if (existing) {
-        unwrap(await supabase.from('maintenance_windows').update(row).eq('id', existing.id).select('id').single());
+        unwrap(await api.from('maintenance_windows').update(row).eq('id', existing.id).select('id').single());
       } else {
         unwrap(
-          await supabase
+          await api
             .from('maintenance_windows')
             .insert({ ...row, car_id: car.id, created_by: session?.user.id ?? null })
             .select('id')

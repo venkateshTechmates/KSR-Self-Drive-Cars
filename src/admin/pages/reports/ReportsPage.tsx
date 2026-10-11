@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, Chip, PageHeader, Toolbar } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { downloadCsv, type CsvValue } from '@/lib/csv';
 import { errorMessage, unwrap } from '@/lib/errors';
@@ -119,7 +119,7 @@ function usePaymentsInRange(bounds: RangeBounds | null) {
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchAll<PaymentWithBooking>((a, b) =>
-        supabase.from('payments').select(PAYMENT_SELECT).gte('received_at', bounds!.fromTs).lt('received_at', bounds!.toTs).order('received_at').order('id').range(a, b),
+        api.from('payments').select(PAYMENT_SELECT).gte('received_at', bounds!.fromTs).lt('received_at', bounds!.toTs).order('received_at').order('id').range(a, b),
       ),
   });
 }
@@ -131,7 +131,7 @@ function useBookingsCreated(bounds: RangeBounds | null) {
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchAll<CreatedBooking>((a, b) =>
-        supabase
+        api
           .from('bookings')
           .select('id, status, source, cancel_reason, created_at, booking_events(to_status)')
           // Only the "confirmed" events are embedded: enough to tell if a cancelled booking was confirmed first.
@@ -153,7 +153,7 @@ function useUtilisation(bounds: RangeBounds | null) {
       // Hours that haven't happened yet can't be rented, so stop the range at now.
       const toMs = Math.min(Date.parse(bounds!.toTs), Date.now());
       if (toMs <= Date.parse(bounds!.fromTs)) return [];
-      const rows = (unwrap(await supabase.rpc('report_utilisation', { p_from: bounds!.fromTs, p_to: new Date(toMs).toISOString() })) ??
+      const rows = (unwrap(await api.rpc('report_utilisation', { p_from: bounds!.fromTs, p_to: new Date(toMs).toISOString() })) ??
         []) as UtilisationRow[];
       return rows.map((r) => ({
         ...r,
@@ -509,7 +509,7 @@ function DocumentsSection({ today }: { today: string }) {
     queryKey: [...qk.documents, 'report-expiring', until],
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('documents')
           .select('id, doc_type, expiry_date, status, car:cars(id, display_name, registration_number), type:document_types(label)')
           .eq('owner_type', 'car')
@@ -524,7 +524,7 @@ function DocumentsSection({ today }: { today: string }) {
     queryKey: [...qk.documents, 'report-pending-kyc'],
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('documents')
           .select('id, doc_type, created_at, customer:customers(id, full_name), type:document_types(label)')
           .eq('owner_type', 'customer')
@@ -649,7 +649,7 @@ function ExportSection({
       'bookings',
       async () => {
         const rows = await fetchAll<BookingWithRefs>((a, b) =>
-          supabase.from('bookings').select(BOOKING_SELECT).gte('pickup_at', bounds.fromTs).lt('pickup_at', bounds.toTs).order('pickup_at').order('id').range(a, b),
+          api.from('bookings').select(BOOKING_SELECT).gte('pickup_at', bounds.fromTs).lt('pickup_at', bounds.toTs).order('pickup_at').order('id').range(a, b),
         );
         await logExport('bookings.export', 'bookings', { from: range.from, to: range.to, basis: 'pickup', rows: rows.length, mobile_included: isOwner });
         const headers = [

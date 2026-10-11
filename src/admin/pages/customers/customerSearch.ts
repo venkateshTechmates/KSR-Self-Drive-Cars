@@ -1,7 +1,7 @@
 // Customer search (CUS-02), shared by the customers, document centre and privacy request screens.
 import { useEffect, useState } from 'react';
 import { normalizeDl } from '@shared/validation.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { unwrap } from '@/lib/errors';
 import type { Customer } from '@/types/db';
 
@@ -33,7 +33,7 @@ export function customerSearchFilter(q: string): string | null {
 }
 
 export async function searchCustomers(q: string, opts: { limit?: number; includeErased?: boolean } = {}): Promise<Customer[]> {
-  let query = supabase.from('customers').select('*');
+  let query = api.from('customers').select('*');
   const filter = customerSearchFilter(q);
   if (filter) query = query.or(filter);
   if (!opts.includeErased) query = query.is('erased_at', null);

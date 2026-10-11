@@ -8,7 +8,7 @@ import { expiryState } from '@shared/documents.ts';
 import { formatIsoDate } from '@shared/time.ts';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Field';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { getDocumentUrl } from '@/lib/documents';
 import { AppError, errorMessage, unwrap } from '@/lib/errors';
 import { istDateIso } from '@/lib/format';
@@ -67,7 +67,7 @@ export function CarPapersTab({ car }: { car: Car }) {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
       unwrap(
-        await supabase.rpc('log_client_event', {
+        await api.rpc('log_client_event', {
           p_action: 'documents.bulk_download',
           p_entity_type: 'cars',
           p_entity_id: car.id,

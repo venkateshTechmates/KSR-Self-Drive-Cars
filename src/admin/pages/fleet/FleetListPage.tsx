@@ -12,7 +12,7 @@ import { ButtonLink, IconButton } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Field';
 import { DataTable, EmptyState, PageHeader, type Column } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatRelativeDay, formatRupees, istDateIso } from '@/lib/format';
 import { useDocumentMeta } from '@/lib/useDocumentMeta';
@@ -62,7 +62,7 @@ export default function FleetListPage() {
     try {
       await Promise.all(
         changed.map((c) =>
-          supabase
+          api
             .from('cars')
             .update({ sort_order: c.sort_order })
             .eq('id', c.id)

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input, Select } from '@/components/ui/Field';
 import { DataTable, EmptyState, PageHeader, type Column } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDateTime, formatIsoDate, formatPhone, istDateIso, pluralize } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -447,7 +447,7 @@ function CustomerFilter({ customerId, onChange }: { customerId: string; onChange
   const chosen = useQuery({
     queryKey: [...qk.customer(customerId), 'name'],
     enabled: Boolean(customerId),
-    queryFn: async () => unwrap(await supabase.from('customers').select('*').eq('id', customerId).maybeSingle()) as Customer | null,
+    queryFn: async () => unwrap(await api.from('customers').select('*').eq('id', customerId).maybeSingle()) as Customer | null,
   });
   if (customerId) {
     const c = chosen.data;

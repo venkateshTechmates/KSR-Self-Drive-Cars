@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { BookingPackage, BookingStatus } from '@shared/constants.ts';
 import { BLOCKING_VEHICLE_DOC_TYPES, expiryState, type ExpiryState } from '@shared/documents.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { carPhotoPaths } from '@/lib/carPhotos';
 import { unwrap } from '@/lib/errors';
 import type { Car, CarPhoto, CarPriceHistory, DocumentType, MaintenanceWindow, PaperProblem, ServiceLog } from '@/types/db';
@@ -74,7 +74,7 @@ export function useCar(id: string) {
   return useQuery({
     queryKey: qk.car(id),
     enabled: UUID_RE.test(id),
-    queryFn: async () => unwrap(await supabase.from('cars').select('*').eq('id', id).maybeSingle()) as Car | null,
+    queryFn: async () => unwrap(await api.from('cars').select('*').eq('id', id).maybeSingle()) as Car | null,
   });
 }
 
@@ -82,7 +82,7 @@ export function useCarPhotos(carId: string) {
   return useQuery({
     queryKey: fleetKeys.photos(carId),
     queryFn: async () =>
-      unwrap(await supabase.from('car_photos').select('*').eq('car_id', carId).order('sort_order').order('created_at')) as CarPhoto[],
+      unwrap(await api.from('car_photos').select('*').eq('car_id', carId).order('sort_order').order('created_at')) as CarPhoto[],
   });
 }
 
@@ -91,7 +91,7 @@ export function usePriceHistory(carId: string) {
     queryKey: fleetKeys.prices(carId),
     queryFn: async () =>
       unwrap(
-        await supabase.from('car_price_history').select('*').eq('car_id', carId).order('changed_at', { ascending: false }).limit(50),
+        await api.from('car_price_history').select('*').eq('car_id', carId).order('changed_at', { ascending: false }).limit(50),
       ) as CarPriceHistory[],
   });
 }
@@ -101,7 +101,7 @@ export function useMaintenanceWindows(carId: string) {
     queryKey: fleetKeys.maintenance(carId),
     queryFn: async () =>
       unwrap(
-        await supabase.from('maintenance_windows').select('*').eq('car_id', carId).order('starts_at', { ascending: false }).limit(200),
+        await api.from('maintenance_windows').select('*').eq('car_id', carId).order('starts_at', { ascending: false }).limit(200),
       ) as MaintenanceWindow[],
   });
 }
@@ -111,7 +111,7 @@ export function useServiceLogs(carId: string) {
     queryKey: fleetKeys.serviceLogs(carId),
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('service_logs')
           .select('*')
           .eq('car_id', carId)
@@ -125,7 +125,7 @@ export function usePaperProblems(carId: string) {
   return useQuery({
     queryKey: fleetKeys.paperProblems(carId),
     queryFn: async () =>
-      (unwrap(await supabase.rpc('car_paper_problems', { p_car: carId, p_until: new Date().toISOString() })) ?? []) as PaperProblem[],
+      (unwrap(await api.rpc('car_paper_problems', { p_car: carId, p_until: new Date().toISOString() })) ?? []) as PaperProblem[],
   });
 }
 
@@ -146,7 +146,7 @@ export function useCarBookings(carId: string) {
     queryKey: fleetKeys.carBookings(carId),
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('bookings')
           .select('id, booking_code, status, package, pickup_at, return_due_at, total_paise, customer:customers(id, full_name)')
           .eq('car_id', carId)
@@ -162,9 +162,9 @@ export function useCarLinks(carId: string, enabled: boolean) {
     queryKey: fleetKeys.carLinks(carId),
     enabled,
     queryFn: async () => {
-      const b = await supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('car_id', carId);
+      const b = await api.from('bookings').select('id', { count: 'exact', head: true }).eq('car_id', carId);
       unwrap(b);
-      const d = await supabase.from('documents').select('id', { count: 'exact', head: true }).eq('car_id', carId);
+      const d = await api.from('documents').select('id', { count: 'exact', head: true }).eq('car_id', carId);
       unwrap(d);
       return { bookings: b.count ?? 0, documents: d.count ?? 0 };
     },
@@ -178,7 +178,7 @@ export function useAllCarPhotos() {
   return useQuery({
     queryKey: fleetKeys.photosAll,
     queryFn: async () =>
-      unwrap(await supabase.from('car_photos').select('*').order('sort_order').order('created_at')) as CarPhoto[],
+      unwrap(await api.from('car_photos').select('*').order('sort_order').order('created_at')) as CarPhoto[],
     staleTime: 60_000,
   });
 }
@@ -197,7 +197,7 @@ export function useNextBookings() {
     queryKey: fleetKeys.nextBookings,
     queryFn: async () => {
       const rows = unwrap(
-        await supabase
+        await api
           .from('bookings')
           .select('id, booking_code, car_id, status, pickup_at')
           .in('status', ['requested', 'confirmed'])
@@ -220,7 +220,7 @@ export function useMaintenanceNow() {
     queryFn: async () => {
       const nowIso = new Date().toISOString();
       const rows = unwrap(
-        await supabase.from('maintenance_windows').select('*').lte('starts_at', nowIso).gt('ends_at', nowIso),
+        await api.from('maintenance_windows').select('*').lte('starts_at', nowIso).gt('ends_at', nowIso),
       ) as MaintenanceWindow[];
       return new Map(rows.map((r) => [r.car_id, r]));
     },
@@ -244,7 +244,7 @@ export function useFleetPapers(types: string[]) {
     queryKey: [...fleetKeys.fleetPapers, types.join(',')],
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('documents')
           .select('id, car_id, doc_type, expiry_date, status, version, created_at')
           .eq('owner_type', 'car')

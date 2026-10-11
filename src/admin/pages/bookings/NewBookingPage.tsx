@@ -26,7 +26,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { Alert, Checkbox, Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, toAppError, unwrap } from '@/lib/errors';
 import { formatRupees, formatWhen, istDateIso, istTime, paiseToInput, parseRupees } from '@/lib/format';
 import { useDocumentMeta } from '@/lib/useDocumentMeta';
@@ -256,13 +256,13 @@ function NewBookingForm({
     queryKey: [...qk.bookings, 'clashes', carId, startIso, endIso],
     enabled: Boolean(carId && startIso && endIso),
     queryFn: async () =>
-      unwrap(await supabase.rpc('car_clashes', { p_car: carId, p_start: startIso, p_end: endIso, p_exclude: null })) as Clash[],
+      unwrap(await api.rpc('car_clashes', { p_car: carId, p_start: startIso, p_end: endIso, p_exclude: null })) as Clash[],
   });
   const papers = useQuery({
     queryKey: [...qk.documents, 'paper-problems', carId, endIso],
     enabled: Boolean(carId),
     queryFn: async () =>
-      unwrap(await supabase.rpc('car_paper_problems', endIso ? { p_car: carId, p_until: endIso } : { p_car: carId })) as PaperProblem[],
+      unwrap(await api.rpc('car_paper_problems', endIso ? { p_car: carId, p_until: endIso } : { p_car: carId })) as PaperProblem[],
   });
 
   // ---------------------------------------------------------------- validation (BK-05: on blur and on submit)
@@ -320,7 +320,7 @@ function NewBookingForm({
     setLookup({ state: 'loading', phone: e164 });
     try {
       const row = unwrap(
-        await supabase
+        await api
           .from('customers')
           .select('id, full_name, email, dl_number, dl_expiry, blocked, block_reason, identity_verified')
           .eq('phone', e164)
@@ -369,7 +369,7 @@ function NewBookingForm({
     setBusy(true);
     try {
       const res = unwrap(
-        await supabase.rpc('admin_create_booking', {
+        await api.rpc('admin_create_booking', {
           p_car_id: carId,
           p_package: pkg,
           p_pickup_at: startIso,

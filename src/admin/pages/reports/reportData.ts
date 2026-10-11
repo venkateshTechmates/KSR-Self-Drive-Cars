@@ -8,7 +8,7 @@ import {
   type BookingStatus,
   type PaymentType,
 } from '@shared/constants.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import type { CsvValue } from '@/lib/csv';
 import { toAppError, unwrap } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
@@ -38,7 +38,7 @@ export async function logExport(
   entityType: string,
   meta: Record<string, unknown>,
 ): Promise<void> {
-  unwrap(await supabase.rpc('log_client_event', { p_action: action, p_entity_type: entityType, p_entity_id: null, p_meta: meta }));
+  unwrap(await api.rpc('log_client_event', { p_action: action, p_entity_type: entityType, p_entity_id: null, p_meta: meta }));
 }
 
 // ---------------------------------------------------------------- payments

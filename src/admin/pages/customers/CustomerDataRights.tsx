@@ -11,7 +11,7 @@ import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDate, formatIsoDate, formatPhone, pluralize } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -45,7 +45,7 @@ export function DataRightsCard({ customer }: { customer: Customer }) {
   async function exportData() {
     setExporting(true);
     try {
-      const data = unwrap(await supabase.rpc('export_customer_data', { p_customer: customer.id }));
+      const data = unwrap(await api.rpc('export_customer_data', { p_customer: customer.id }));
       downloadJson(`customer-${customer.id}.json`, data);
       toast.success('Export downloaded. It was recorded in the audit log.');
     } catch (err) {
@@ -145,7 +145,7 @@ function EraseBody({ customer, onClose, busy, setBusy }: { customer: Customer; o
   const [error, setError] = useState<string | null>(null);
   const blockers = useQuery({
     queryKey: [...qk.customer(customer.id), 'erasure-blockers'],
-    queryFn: async () => (unwrap(await supabase.rpc('erasure_blockers', { p_customer: customer.id })) ?? []) as string[],
+    queryFn: async () => (unwrap(await api.rpc('erasure_blockers', { p_customer: customer.id })) ?? []) as string[],
     staleTime: 0,
     gcTime: 0,
   });
@@ -155,7 +155,7 @@ function EraseBody({ customer, onClose, busy, setBusy }: { customer: Customer; o
     setError(null);
     setBusy(true);
     try {
-      const res = unwrap(await supabase.rpc('erase_customer', { p_customer: customer.id, p_reason: reason.trim() })) as {
+      const res = unwrap(await api.rpc('erase_customer', { p_customer: customer.id, p_reason: reason.trim() })) as {
         documents_queued?: number;
       } | null;
       const files = res?.documents_queued ?? 0;
@@ -260,7 +260,7 @@ function MergeBody({ customer, onClose, busy, setBusy }: { customer: Customer; o
     setBusy(true);
     const mergeId = keepId === customer.id ? other.id : customer.id;
     try {
-      unwrap(await supabase.rpc('merge_customers', { p_keep: keepId, p_merge: mergeId, p_reason: reason.trim() }));
+      unwrap(await api.rpc('merge_customers', { p_keep: keepId, p_merge: mergeId, p_reason: reason.trim() }));
       toast.success('Records merged');
       onClose();
       if (keepId !== customer.id) navigate(`/admin/customers/${keepId}`, { replace: true });

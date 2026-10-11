@@ -25,7 +25,8 @@ type StaffAction =
   | { action: 'deactivate' | 'reactivate' | 'resend_invite'; user_id: string }
   | { action: 'update_profile'; user_id: string; full_name?: string; phone?: string };
 
-const callStaff = (body: StaffAction) => callFunction<{ ok: true; user_id: string }>('admin-staff', { body });
+/** `link` is returned only when email (SMTP) isn't set up, so the Owner can share it themselves. */
+const callStaff = (body: StaffAction) => callFunction<{ ok: true; user_id: string; link?: string }>('admin-staff', { body });
 
 const ROLE_HELP: Record<AppRole, string> = {
   owner: 'Everything, including settings, staff accounts and the audit log.',
@@ -65,14 +66,16 @@ export default function StaffPage() {
   const [deactivating, setDeactivating] = useState<StaffMember | null>(null);
   const [reactivating, setReactivating] = useState<StaffMember | null>(null);
   const [resending, setResending] = useState<string | null>(null);
+  const [shownLink, setShownLink] = useState<{ email: string; link: string } | null>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: qk.staff });
 
   async function resend(s: StaffMember) {
     setResending(s.user_id);
     try {
-      await callStaff({ action: 'resend_invite', user_id: s.user_id });
-      toast.success(
+      const res = await callStaff({ action: 'resend_invite', user_id: s.user_id });
+      if (res.link) setShownLink({ email: s.email, link: res.link });
+      else toast.success(
         s.last_seen_at ? `Password reset email sent to ${s.email}.` : `Invite sent again to ${s.email}. If they've already joined, it's a password reset link.`,
       );
       await refresh();
@@ -215,12 +218,22 @@ export default function StaffPage() {
 
       <Dialog open={inviting} onClose={() => setInviting(false)} title="Invite someone" description="They get an email with a link to set their password.">
         <InviteForm
-          onDone={async () => {
+          onDone={async (invited) => {
             setInviting(false);
+            if (invited) setShownLink(invited);
             await refresh();
           }}
           onCancel={() => setInviting(false)}
         />
+      </Dialog>
+
+      <Dialog
+        open={shownLink !== null}
+        onClose={() => setShownLink(null)}
+        title="Share this link"
+        description="Email isn't set up on the server, so no message was sent. Send this one-time link to them yourself (it works once)."
+      >
+        {shownLink && <LinkToShare email={shownLink.email} link={shownLink.link} onClose={() => setShownLink(null)} />}
       </Dialog>
 
       <Dialog open={editing !== null} onClose={() => setEditing(null)} title={editing ? `Edit ${editing.full_name}` : 'Edit'}>
@@ -283,7 +296,30 @@ function RoleSelect({ value, onChange, disabled }: { value: AppRole; onChange: (
   );
 }
 
-function InviteForm({ onDone, onCancel }: { onDone: () => Promise<void>; onCancel: () => void }) {
+function LinkToShare({ email, link, onClose }: { email: string; link: string; onClose: () => void }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="m-0">For {email}:</p>
+      <code className="block rounded-lg border border-line bg-subtle p-3 text-sm break-all">{link}</code>
+      <DialogFooter>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            navigator.clipboard.writeText(link).then(
+              () => toast.success('Link copied'),
+              () => toast.error('Copy failed. Select the link and copy it.'),
+            )
+          }
+        >
+          Copy link
+        </Button>
+        <Button onClick={onClose}>Done</Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function InviteForm({ onDone, onCancel }: { onDone: (shareLink?: { email: string; link: string }) => Promise<void>; onCancel: () => void }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AppRole>('staff');
@@ -304,15 +340,18 @@ function InviteForm({ onDone, onCancel }: { onDone: () => Promise<void>; onCance
     if (Object.values(next).some(Boolean)) return;
     setBusy(true);
     try {
-      await callStaff({
+      const res = await callStaff({
         action: 'invite',
         email: email.trim().toLowerCase(),
         full_name: fullName.trim(),
         role,
         phone: phone.trim() ? normalizePhone(phone) ?? undefined : undefined,
       });
-      toast.success(`Invite sent to ${email.trim()}.`);
-      await onDone();
+      if (res.link) await onDone({ email: email.trim(), link: res.link });
+      else {
+        toast.success(`Invite sent to ${email.trim()}.`);
+        await onDone();
+      }
     } catch (err) {
       const fields = fieldErrors(err);
       if (Object.keys(fields).length) setErrors((prev) => ({ ...prev, ...fields }));

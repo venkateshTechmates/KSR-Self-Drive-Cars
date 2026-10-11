@@ -1,5 +1,6 @@
-// Call Supabase edge functions with the signed-in user's token (or the publishable key).
-import { SUPABASE_KEY, SUPABASE_URL, supabase } from '@/integrations/supabase/client';
+// Call the server's function endpoints (/api/fn/<name>), e.g. submit-booking, document-upload.
+// The session cookie identifies the user; every call carries the CSRF header.
+import { API_HEADERS, onSessionExpiredNotify } from '@/integrations/api/client';
 import { AppError } from './errors';
 
 interface CallOptions {
@@ -8,23 +9,16 @@ interface CallOptions {
   /** JSON body (ignored when formData is given). */
   body?: unknown;
   formData?: FormData;
-  /** Use only the publishable key, even if someone is signed in (public endpoints). */
+  /** Kept for compatibility; the cookie decides who is calling. */
   anonymous?: boolean;
   signal?: AbortSignal;
 }
 
 export async function callFunction<T>(name: string, opts: CallOptions = {}): Promise<T> {
-  const url = new URL(`${SUPABASE_URL}/functions/v1/${name}`);
+  const url = new URL(`/api/fn/${name}`, window.location.origin);
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, v);
 
-  const headers: Record<string, string> = { apikey: SUPABASE_KEY };
-  let token = SUPABASE_KEY;
-  if (!opts.anonymous) {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.access_token) token = data.session.access_token;
-  }
-  headers.Authorization = `Bearer ${token}`;
-
+  const headers: Record<string, string> = { ...API_HEADERS };
   let body: BodyInit | undefined;
   if (opts.formData) body = opts.formData;
   else if (opts.body !== undefined) {
@@ -34,7 +28,7 @@ export async function callFunction<T>(name: string, opts: CallOptions = {}): Pro
 
   let res: Response;
   try {
-    res = await fetch(url, { method: opts.method ?? 'POST', headers, body, signal: opts.signal });
+    res = await fetch(url, { method: opts.method ?? 'POST', headers, body, credentials: 'same-origin', signal: opts.signal });
   } catch {
     throw new AppError("Couldn't reach the server. Check your connection and try again.", 'network');
   }
@@ -42,8 +36,9 @@ export async function callFunction<T>(name: string, opts: CallOptions = {}): Pro
   const text = await res.text();
   const json = parseJson(text);
   if (!res.ok) {
-    const j = (json ?? {}) as { error?: string; code?: string; hint?: unknown };
-    throw new AppError(j.error ?? `Request failed (${res.status}).`, j.code ?? null, j.hint ?? null, res.status);
+    if (res.status === 401) onSessionExpiredNotify();
+    const j = (json ?? {}) as { error?: string; message?: string; code?: string; hint?: unknown };
+    throw new AppError(j.error ?? j.message ?? `Request failed (${res.status}).`, j.code ?? null, j.hint ?? null, res.status);
   }
   return json as T;
 }

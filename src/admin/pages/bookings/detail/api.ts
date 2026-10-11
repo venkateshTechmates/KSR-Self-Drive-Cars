@@ -1,14 +1,14 @@
 // Data for the booking detail screen (BKA-03). Every key sits under qk.bookings (or
 // qk.customers), so invalidating that prefix after a mutation refreshes the whole screen.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { unwrap } from '@/lib/errors';
 import type { BookingCharge, BookingEvent, Clash, Customer, HandoverRecord, PaperProblem, Payment } from '@/types/db';
 import { qk } from '@/admin/hooks/queries';
 
 /** Call an RPC and return its data, throwing an AppError (with .code and .hint) on failure. */
 export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>): Promise<T> {
-  return unwrap(await supabase.rpc(fn, args)) as T;
+  return unwrap(await api.rpc(fn, args)) as T;
 }
 
 export const detailKeys = {
@@ -27,7 +27,7 @@ export function useBookingEvents(bookingId: string) {
     queryKey: detailKeys.events(bookingId),
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('booking_events')
           .select('*')
           .eq('booking_id', bookingId)
@@ -41,7 +41,7 @@ export function useHandovers(bookingId: string) {
   return useQuery({
     queryKey: detailKeys.handovers(bookingId),
     queryFn: async () =>
-      unwrap(await supabase.from('handover_records').select('*').eq('booking_id', bookingId).order('recorded_at')) as HandoverRecord[],
+      unwrap(await api.from('handover_records').select('*').eq('booking_id', bookingId).order('recorded_at')) as HandoverRecord[],
   });
 }
 
@@ -49,7 +49,7 @@ export function useCharges(bookingId: string) {
   return useQuery({
     queryKey: detailKeys.charges(bookingId),
     queryFn: async () =>
-      unwrap(await supabase.from('booking_charges').select('*').eq('booking_id', bookingId).order('created_at')) as BookingCharge[],
+      unwrap(await api.from('booking_charges').select('*').eq('booking_id', bookingId).order('created_at')) as BookingCharge[],
   });
 }
 
@@ -58,7 +58,7 @@ export function usePayments(bookingId: string) {
     queryKey: detailKeys.payments(bookingId),
     queryFn: async () =>
       unwrap(
-        await supabase
+        await api
           .from('payments')
           .select('*')
           .eq('booking_id', bookingId)
@@ -103,7 +103,7 @@ export function useCustomerDetail(customerId: string | null) {
     queryKey: detailKeys.customer(customerId ?? ''),
     enabled: Boolean(customerId),
     queryFn: async () =>
-      unwrap(await supabase.from('customers').select(CUSTOMER_COLUMNS).eq('id', customerId!).maybeSingle()) as CustomerDetail | null,
+      unwrap(await api.from('customers').select(CUSTOMER_COLUMNS).eq('id', customerId!).maybeSingle()) as CustomerDetail | null,
   });
 }
 

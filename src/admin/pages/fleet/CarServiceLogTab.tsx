@@ -10,7 +10,7 @@ import { ConfirmDialog, Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, DataTable, EmptyState, type Column } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatRupees, istDateIso, paiseToInput, parseRupees } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
@@ -41,7 +41,7 @@ export function CarServiceLogTab({ car }: { car: Car }) {
   async function linkInvoice(logId: string, doc: DocumentRow | undefined) {
     if (!doc) return;
     try {
-      unwrap(await supabase.from('service_logs').update({ invoice_document_id: doc.id }).eq('id', logId).select('id').single());
+      unwrap(await api.from('service_logs').update({ invoice_document_id: doc.id }).eq('id', logId).select('id').single());
       await queryClient.invalidateQueries({ queryKey: qk.car(car.id) });
       toast.success('Invoice added to the service');
     } catch (err) {
@@ -50,7 +50,7 @@ export function CarServiceLogTab({ car }: { car: Car }) {
   }
 
   async function remove(log: ServiceLog) {
-    unwrap(await supabase.from('service_logs').delete().eq('id', log.id).select('id'));
+    unwrap(await api.from('service_logs').delete().eq('id', log.id).select('id'));
     await queryClient.invalidateQueries({ queryKey: qk.car(car.id) });
     toast.success('Service removed');
   }
@@ -221,10 +221,10 @@ function ServiceForm({
         garage: garage.trim(),
       };
       if (existing) {
-        unwrap(await supabase.from('service_logs').update(row).eq('id', existing.id).select('id').single());
+        unwrap(await api.from('service_logs').update(row).eq('id', existing.id).select('id').single());
       } else {
         unwrap(
-          await supabase
+          await api
             .from('service_logs')
             .insert({ ...row, car_id: car.id, created_by: session?.user.id ?? null })
             .select('id')

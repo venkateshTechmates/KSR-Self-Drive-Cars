@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog, Dialog } from '@/components/ui/Dialog';
 import { Alert, Checkbox, Field, Input, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, Chip } from '@/components/ui/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { toAppError, unwrap } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
@@ -31,7 +31,7 @@ interface Draft {
 export function PoliciesTab() {
   const versions = useQuery({
     queryKey: policyKey,
-    queryFn: async () => unwrap(await supabase.from('policy_versions').select('*').order('version', { ascending: false })) as PolicyVersion[],
+    queryFn: async () => unwrap(await api.from('policy_versions').select('*').order('version', { ascending: false })) as PolicyVersion[],
   });
   return <Loader query={versions}>{(rows) => <Policies rows={rows} />}</Loader>;
 }
@@ -223,7 +223,7 @@ function PolicyEditor({
   }
 
   async function publish() {
-    const { error } = await supabase.from('policy_versions').insert({
+    const { error } = await api.from('policy_versions').insert({
       kind,
       locale,
       version: nextVersion,

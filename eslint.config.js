@@ -18,11 +18,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['supabase/functions/**/*.ts'],
-    languageOptions: { globals: { ...globals.browser, Deno: 'readonly', EdgeRuntime: 'readonly' } },
+    files: ['server/**/*.ts'],
+    languageOptions: { globals: globals.node },
   },
   {
-    files: ['scripts/**/*.mjs', 'tests/**/*.ts', '*.config.{js,ts}'],
+    files: ['scripts/**/*.{mjs,ts}', 'tests/**/*.ts', '*.config.{js,ts}'],
     languageOptions: { globals: globals.node },
   },
 );

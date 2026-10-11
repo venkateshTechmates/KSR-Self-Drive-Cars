@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { KeyValue } from '@/components/ui/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { useNow } from '@/lib/useNow';
 import type { Customer } from '@/types/db';
@@ -60,7 +60,7 @@ function NewRequestForm({ onClose, busy, setBusy }: { onClose: () => void; busy:
   const match = useQuery({
     queryKey: [...qk.customers, 'by-phone', phone],
     enabled: Boolean(phone) && !customer,
-    queryFn: async () => unwrap(await supabase.from('customers').select('*').eq('phone', phone!).maybeSingle()) as Customer | null,
+    queryFn: async () => unwrap(await api.from('customers').select('*').eq('phone', phone!).maybeSingle()) as Customer | null,
   });
   const suggestion = !customer && phone && match.data ? match.data : null;
 
@@ -81,7 +81,7 @@ function NewRequestForm({ onClose, busy, setBusy }: { onClose: () => void; busy:
     setBusy(true);
     try {
       unwrap(
-        await supabase
+        await api
           .from('data_requests')
           .insert({
             requester_name: name.trim(),
@@ -240,7 +240,7 @@ function UpdateRequestForm({
     setBusy(true);
     try {
       unwrap(
-        await supabase
+        await api
           .from('data_requests')
           .update({
             status,

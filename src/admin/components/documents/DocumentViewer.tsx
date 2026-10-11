@@ -9,7 +9,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { downloadDocument, getDocumentUrl } from '@/lib/documents';
 import { encodeCanvas, loadImage } from '@/lib/images';
 import { errorMessage } from '@/lib/errors';
@@ -28,7 +28,7 @@ export function DocumentViewer({ doc, open, onClose }: { doc: DocumentRow | null
     queryKey: ['document-access', doc?.id],
     enabled: open && Boolean(doc),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('document_access', { p_doc: doc!.id });
+      const { data, error } = await api.rpc('document_access', { p_doc: doc!.id });
       if (error) throw error;
       return data as Access;
     },

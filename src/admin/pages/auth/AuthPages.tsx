@@ -1,11 +1,12 @@
 // /admin/login, /admin/mfa and /admin/reset-password (ADM-02, ADM-03, ADM-07).
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { KsrLogo } from '@/components/brand/Brand';
 import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input } from '@/components/ui/Field';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { forgotPassword, mfaEnroll, mfaVerify, passwordTokenInfo, resetPassword } from '@/integrations/api/auth';
 import { errorMessage } from '@/lib/errors';
 import { useDocumentMeta } from '@/lib/useDocumentMeta';
 import { useAuth } from '../../auth/AuthProvider';
@@ -89,52 +90,32 @@ export function LoginPage() {
   );
 }
 
-type MfaStep = { kind: 'loading' } | { kind: 'enroll'; factorId: string; qr: string; secret: string } | { kind: 'challenge'; factorId: string };
-
 export function MfaPage() {
-  const { session, access, role, needsMfa, refreshAccess, signOut } = useAuth();
+  const { session, access, role, needsMfa, applySession, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [step, setStep] = useState<MfaStep>({ kind: 'loading' });
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // Keyed on the user, not the session object: Supabase emits a new session object on every
-  // tab refocus and token refresh, and re-running would replace the factor being set up.
-  const userId = session?.user.id;
+  const enrolled = session?.mfa_enrolled ?? false;
 
-  useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data, error: e } = await supabase.auth.mfa.listFactors();
-        if (e) throw e;
-        const verified = data.totp.find((f) => f.status === 'verified');
-        if (verified) {
-          if (!cancelled) setStep({ kind: 'challenge', factorId: verified.id });
-          return;
-        }
-        // Clean up half-finished enrolments, then start a new one.
-        for (const f of data.all.filter((x) => x.status === 'unverified')) await supabase.auth.mfa.unenroll({ factorId: f.id });
-        const { data: en, error: e2 } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `KSR ${new Date().toISOString().slice(0, 10)}` });
-        if (e2) throw e2;
-        if (!cancelled) setStep({ kind: 'enroll', factorId: en.id, qr: en.totp.qr_code, secret: en.totp.secret });
-      } catch (err) {
-        if (!cancelled) setError(errorMessage(err));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+  // Not enrolled yet: fetch one secret + QR code per user and keep it while they scan
+  // (switching to the authenticator app and back must not replace it).
+  const enrolment = useQuery({
+    queryKey: ['mfa-enrol', session?.user.id],
+    enabled: Boolean(session && !enrolled),
+    queryFn: mfaEnroll,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   if (!session) return <Navigate to="/admin/login" replace />;
   if (access && role && !needsMfa) return <Navigate to={fromState(location.state)} replace />;
 
   async function verify(e: FormEvent) {
     e.preventDefault();
-    if (step.kind === 'loading') return;
     if (!/^\d{6}$/.test(code.trim())) {
       setError('Enter the 6-digit code from your authenticator app.');
       return;
@@ -142,20 +123,12 @@ export function MfaPage() {
     setBusy(true);
     setError(null);
     try {
-      const { data: ch, error: e1 } = await supabase.auth.mfa.challenge({ factorId: step.factorId });
-      if (e1) throw e1;
-      const { error: e2 } = await supabase.auth.mfa.verify({ factorId: step.factorId, challengeId: ch.id, code: code.trim() });
-      if (e2) throw new Error('That code is not right, or it expired. Try the current code.');
-      await supabase.rpc('log_client_event', {
-        p_action: step.kind === 'enroll' ? 'auth.mfa_enrolled' : 'auth.mfa_verified',
-        p_entity_type: 'auth',
-        p_entity_id: null,
-        p_meta: null,
-      });
-      await refreshAccess();
+      const s = await mfaVerify(code.trim());
+      applySession(s);
       navigate(fromState(location.state), { replace: true });
     } catch (err) {
       setError(errorMessage(err));
+      setCode('');
     } finally {
       setBusy(false);
     }
@@ -163,28 +136,35 @@ export function MfaPage() {
 
   return (
     <AuthCard
-      title={step.kind === 'enroll' ? 'Set up two-step verification' : 'Two-step verification'}
+      title={enrolled ? 'Two-step verification' : 'Set up two-step verification'}
       footer={
         <button type="button" className="min-h-11 bg-transparent font-semibold text-action underline" onClick={() => void signOut()}>
           Sign out
         </button>
       }
     >
-      {step.kind === 'loading' && !error && <PageSpinner />}
-      {step.kind === 'enroll' && (
+      {!enrolled && enrolment.isLoading && <PageSpinner />}
+      {!enrolled && enrolment.error && <Alert>{errorMessage(enrolment.error)}</Alert>}
+      {!enrolled && enrolment.data && (
         <div className="mb-5 flex flex-col gap-3 text-[15px]">
           <p className="m-0">
             Owner and Manager accounts need an authenticator app (Google Authenticator, Microsoft Authenticator or similar). Scan this code
             with the app, then enter the 6-digit code it shows.
           </p>
-          <img src={step.qr} alt="QR code for your authenticator app" width={180} height={180} className="self-center rounded-lg border border-line bg-white p-2" />
+          <img
+            src={enrolment.data.qr}
+            alt="QR code for your authenticator app"
+            width={200}
+            height={200}
+            className="self-center rounded-lg border border-line bg-white p-2"
+          />
           <p className="m-0 text-sm text-muted">
-            Can&apos;t scan? Enter this key in the app: <code className="break-all font-mono text-ink">{step.secret}</code>
+            Can&apos;t scan? Enter this key in the app: <code className="break-all font-mono text-ink">{enrolment.data.secret}</code>
           </p>
         </div>
       )}
-      {step.kind === 'challenge' && <p className="m-0 mb-5 text-[15px]">Enter the 6-digit code from your authenticator app.</p>}
-      {step.kind !== 'loading' && (
+      {enrolled && <p className="m-0 mb-5 text-[15px]">Enter the 6-digit code from your authenticator app.</p>}
+      {(enrolled || enrolment.data) && (
         <form onSubmit={verify} className="flex flex-col gap-4" noValidate>
           <Field label="6-digit code">
             <Input
@@ -203,24 +183,24 @@ export function MfaPage() {
           </Button>
         </form>
       )}
-      {step.kind === 'loading' && error && <Alert>{error}</Alert>}
     </AuthCard>
   );
 }
 
-/** Request a reset email, or (arriving from the email/invite link) set a new password. */
+/** Request a reset email, or (arriving from an email or invite link) choose a password. */
 export function ResetPasswordPage() {
-  const { session } = useAuth();
-  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const token = params.get('token');
+  return token ? <ChoosePassword token={token} /> : <RequestReset />;
+}
+
+function RequestReset() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const arrivedFromLink = typeof window !== 'undefined' && /type=(recovery|invite)|access_token|code=/.test(window.location.hash + window.location.search);
 
-  async function requestReset(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!email.trim()) {
       setError('Enter your email.');
@@ -229,10 +209,7 @@ export function ResetPasswordPage() {
     setBusy(true);
     setError(null);
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/admin/reset-password`,
-      });
-      if (err) throw err;
+      await forgotPassword(email.trim());
       setSent(true);
     } catch (err) {
       setError(errorMessage(err));
@@ -241,7 +218,40 @@ export function ResetPasswordPage() {
     }
   }
 
-  async function setNewPassword(e: FormEvent) {
+  return (
+    <AuthCard title="Reset your password" footer={<Link to="/admin/login">Back to sign in</Link>}>
+      {sent ? (
+        <Alert tone="success">If that email has an admin account, we sent a link to reset the password. Check your inbox.</Alert>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          <Field label="Email">
+            <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          {error && <Alert>{error}</Alert>}
+          <Button type="submit" size="lg" loading={busy}>
+            Send reset link
+          </Button>
+        </form>
+      )}
+    </AuthCard>
+  );
+}
+
+function ChoosePassword({ token }: { token: string }) {
+  const { applySession } = useAuth();
+  const navigate = useNavigate();
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const info = useQuery({ queryKey: ['password-token', token], queryFn: () => passwordTokenInfo(token), retry: false, staleTime: Infinity });
+
+  // Keep the token out of the address bar and history once it has been read.
+  useEffect(() => {
+    if (info.data) window.history.replaceState(window.history.state, '', window.location.pathname);
+  }, [info.data]);
+
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (password.length < 10) {
       setError('Use at least 10 characters.');
@@ -254,8 +264,7 @@ export function ResetPasswordPage() {
     setBusy(true);
     setError(null);
     try {
-      const { error: err } = await supabase.auth.updateUser({ password });
-      if (err) throw err;
+      applySession(await resetPassword(token, password));
       navigate('/admin', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
@@ -264,40 +273,25 @@ export function ResetPasswordPage() {
     }
   }
 
-  if (session || arrivedFromLink) {
-    return (
-      <AuthCard title="Choose a new password">
-        {!session && <PageSpinner label="Checking your link" />}
-        {session && (
-          <form onSubmit={setNewPassword} className="flex flex-col gap-4" noValidate>
-            <Field label="New password" hint="At least 10 characters.">
-              <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </Field>
-            <Field label="Type it again">
-              <Input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-            </Field>
-            {error && <Alert>{error}</Alert>}
-            <Button type="submit" size="lg" loading={busy}>
-              Save password
-            </Button>
-          </form>
-        )}
-      </AuthCard>
-    );
-  }
-
+  const invite = info.data?.kind === 'invite';
   return (
-    <AuthCard title="Reset your password" footer={<Link to="/admin/login">Back to sign in</Link>}>
-      {sent ? (
-        <Alert tone="success">If that email has an admin account, we sent a link to reset the password. Check your inbox.</Alert>
-      ) : (
-        <form onSubmit={requestReset} className="flex flex-col gap-4" noValidate>
-          <Field label="Email">
-            <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+    <AuthCard title={invite ? 'Welcome! Choose your password' : 'Choose a new password'} footer={<Link to="/admin/login">Back to sign in</Link>}>
+      {info.isLoading && <PageSpinner label="Checking your link" />}
+      {info.data && !info.data.valid && (
+        <Alert title="This link can't be used">It has expired or was already used. Ask the Owner for a new invite, or request a new reset link.</Alert>
+      )}
+      {info.data?.valid && (
+        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          <p className="m-0 text-[15px] text-muted">{info.data.email}</p>
+          <Field label="New password" hint="At least 10 characters.">
+            <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          <Field label="Type it again">
+            <Input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </Field>
           {error && <Alert>{error}</Alert>}
           <Button type="submit" size="lg" loading={busy}>
-            Send reset link
+            Save password
           </Button>
         </form>
       )}

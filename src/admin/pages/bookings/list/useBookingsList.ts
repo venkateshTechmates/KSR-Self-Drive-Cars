@@ -2,7 +2,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { BOOKING_SOURCES, type BookingSource, type BookingStatus } from '@shared/constants.ts';
 import { addDaysIso, isIsoDate, istStartOfDay } from '@shared/time.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { toAppError, unwrap } from '@/lib/errors';
 import type { BookingWithRefs, Car } from '@/types/db';
 import { BOOKING_SELECT } from '../../../hooks/bookings';
@@ -87,7 +87,7 @@ async function matchCustomers(term: string): Promise<string[]> {
   const digits = term.replace(/\D/g, '');
   if (digits.length >= 4) conds.push(`phone.ilike.${quoted(`%${digits.length > 10 ? digits.slice(-10) : digits}%`)}`);
   if (!conds.length) return [];
-  const rows = unwrap(await supabase.from('customers').select('id').or(conds.join(',')).limit(100)) as { id: string }[];
+  const rows = unwrap(await api.from('customers').select('id').or(conds.join(',')).limit(100)) as { id: string }[];
   return rows.map((r) => r.id);
 }
 
@@ -121,7 +121,7 @@ export interface BookingsPage {
 async function fetchBookings(f: ListFilters, limit: number, todayIso: string, cars: Car[]): Promise<BookingsPage> {
   const nowIso = new Date().toISOString();
   const todayStart = istStartOfDay(todayIso).toISOString();
-  let query = supabase.from('bookings').select(BOOKING_SELECT, { count: 'exact' });
+  let query = api.from('bookings').select(BOOKING_SELECT, { count: 'exact' });
 
   if (f.view === 'upcoming') query = query.gte('pickup_at', todayStart);
   if (f.view === 'past') query = query.lt('pickup_at', todayStart);

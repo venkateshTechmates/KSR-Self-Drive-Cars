@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { unwrap } from '@/lib/errors';
 import type { BookingWithRefs } from '@/types/db';
 import { qk } from './queries';
@@ -16,6 +16,6 @@ export function useBookingByCode(code: string | undefined) {
     queryKey: qk.booking(code ?? ''),
     enabled: Boolean(code),
     queryFn: async () =>
-      unwrap(await supabase.from('bookings').select(BOOKING_SELECT).eq('booking_code', code!).maybeSingle()) as BookingWithRefs | null,
+      unwrap(await api.from('bookings').select(BOOKING_SELECT).eq('booking_code', code!).maybeSingle()) as BookingWithRefs | null,
   });
 }

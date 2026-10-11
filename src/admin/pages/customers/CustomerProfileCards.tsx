@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog, Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert, Field, Input, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, KeyValue } from '@/components/ui/Layout';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDate, formatDateTime, formatIsoDate, formatPhone, istDateIso, telHref } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
@@ -115,7 +115,7 @@ function EditCustomerForm({
     setBusy(true);
     try {
       unwrap(
-        await supabase
+        await api
           .from('customers')
           .update({
             full_name: normalizeName(name),
@@ -232,7 +232,7 @@ export function IdentityCard({ customer, readOnly }: { customer: Customer; readO
         reasonLabel="Reason"
         reasonHint="For example: verified against the wrong ID."
         onConfirm={async (reason) => {
-          unwrap(await supabase.rpc('clear_customer_identity', { p_customer: customer.id, p_reason: reason }));
+          unwrap(await api.rpc('clear_customer_identity', { p_customer: customer.id, p_reason: reason }));
           toast.success('Verification cleared');
           await Promise.all([queryClient.invalidateQueries({ queryKey: qk.customers }), queryClient.invalidateQueries({ queryKey: qk.bookings })]);
         }}
@@ -248,7 +248,7 @@ export function BlocklistCard({ customer, readOnly }: { customer: Customer; read
   const [dialog, setDialog] = useState<'block' | 'unblock' | null>(null);
 
   async function setBlocked(blocked: boolean, reason: string | null) {
-    unwrap(await supabase.rpc('set_customer_block', { p_customer: customer.id, p_blocked: blocked, p_reason: reason }));
+    unwrap(await api.rpc('set_customer_block', { p_customer: customer.id, p_blocked: blocked, p_reason: reason }));
     toast.success(blocked ? 'Customer blocked' : 'Customer unblocked');
     await Promise.all([queryClient.invalidateQueries({ queryKey: qk.customers }), queryClient.invalidateQueries({ queryKey: qk.bookings })]);
   }

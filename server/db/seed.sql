@@ -237,3 +237,8 @@ values
   ('maruti-baleno', 'Maruti Baleno', 'Maruti Suzuki', 'Baleno', 'hatchback', 'hatch', 5, 'petrol', 'manual', null, 130000, 250000, 90),
   ('maruti-ertiga', 'Ertiga (7 Seater)', 'Maruti Suzuki', 'Ertiga', 'mpv', 'mpv', 7, 'petrol', 'manual', '7 seater', 200000, 350000, 100),
   ('maruti-xl6-cng', 'XL6 CNG', 'Maruti Suzuki', 'XL6', 'premium_mpv', 'mpv', 6, 'cng', 'manual', null, 200000, 350000, 110);
+
+-- Starting price history for the seeded fleet (FLT-03; the app adds a row on every change).
+INSERT INTO car_price_history (car_id, price_12h_paise, price_24h_paise)
+SELECT c.id, c.price_12h_paise, c.price_24h_paise FROM cars c
+WHERE NOT EXISTS (SELECT 1 FROM car_price_history h WHERE h.car_id = c.id);

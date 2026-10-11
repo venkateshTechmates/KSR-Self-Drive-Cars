@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input } from '@/components/ui/Field';
 import { Chip, DataTable, EmptyState, PageHeader, Toolbar, type Column } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, toAppError, unwrap } from '@/lib/errors';
 import { formatDate, formatPhone, pluralize } from '@/lib/format';
 import type { Customer } from '@/types/db';
@@ -36,7 +36,7 @@ export default function CustomersListPage() {
   const list = useQuery({
     queryKey: [...qk.customers, 'list', { q, showErased, blockedOnly, limit }],
     queryFn: async () => {
-      let query = supabase.from('customers').select('*', { count: 'exact' });
+      let query = api.from('customers').select('*', { count: 'exact' });
       const filter = customerSearchFilter(q);
       if (filter) query = query.or(filter);
       if (!showErased) query = query.is('erased_at', null);
@@ -58,7 +58,7 @@ export default function CustomersListPage() {
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const found = await inChunks(ids, async (chunk) =>
-        (unwrap(await supabase.from('bookings').select('customer_id, pickup_at').in('customer_id', chunk)) ?? []) as Array<{
+        (unwrap(await api.from('bookings').select('customer_id, pickup_at').in('customer_id', chunk)) ?? []) as Array<{
           customer_id: string;
           pickup_at: string;
         }>,
@@ -81,7 +81,7 @@ export default function CustomersListPage() {
     queryFn: async () => {
       const found = await inChunks(ids, async (chunk) =>
         (unwrap(
-          await supabase
+          await api
             .from('documents')
             .select('customer_id, status')
             .in('customer_id', chunk)

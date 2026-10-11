@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { DataRequestKind } from '@shared/constants.ts';
 import { addDaysIso, daysBetween, istDateIso, istStartOfDay } from '@shared/time.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { unwrap } from '@/lib/errors';
 import type { DataRequest } from '@/types/db';
 import { qk } from '../../hooks/queries';
@@ -59,7 +59,7 @@ export function useDataRequests() {
     queryKey: qk.dataRequests,
     queryFn: async () =>
       (unwrap(
-        await supabase
+        await api
           .from('data_requests')
           .select('*, customer:customers(id, full_name, phone, erased_at)')
           .order('received_at', { ascending: false })

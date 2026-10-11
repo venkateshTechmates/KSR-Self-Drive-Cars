@@ -11,7 +11,11 @@ export default defineConfig({
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
     },
   },
-  server: { port: 8080 },
+  server: {
+    port: 8080,
+    // The API server (npm run dev starts both) serves /api and the car photos under /media.
+    proxy: { '/api': 'http://localhost:3000', '/media': 'http://localhost:3000' },
+  },
   build: {
     target: 'es2022',
     // heic2any (~1.3 MB) is loaded on demand, only when someone uploads an iPhone HEIC photo.

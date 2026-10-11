@@ -1,0 +1,57 @@
+# Render Blueprint for KSR Self Drive Cars. See Docs/DEPLOY.md.
+# A persistent disk needs a paid instance type, and a service with a disk always runs as a
+# single instance, which is exactly what SQLite needs.
+services:
+  - type: web
+    name: ksr-self-drive-cars
+    runtime: docker
+    region: singapore # closest Render region to India
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: ksr-data
+      mountPath: /data
+      sizeGB: 5
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: PORT
+        value: "8080"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: APP_SECRET
+        generateValue: true
+      - key: RATE_LIMIT_SALT
+        generateValue: true
+      # Your public address, e.g. https://ksr-self-drive-cars.onrender.com (no trailing slash).
+      - key: SITE_URL
+        sync: false
+      # Build-time values for the static site (Render passes env vars to the Docker build).
+      - key: VITE_SITE_URL
+        sync: false
+      - key: VITE_PLAUSIBLE_DOMAIN
+        sync: false
+      # Email (any SMTP provider). Leave SMTP_HOST empty to log emails instead of sending.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      # First boot only: creates the Owner account. Remove OWNER_PASSWORD after signing in.
+      - key: OWNER_EMAIL
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: OWNER_NAME
+        sync: false

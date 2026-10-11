@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Field';
 import { EmptyState } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDateTime, formatPhone, formatRupees } from '@/lib/format';
 import { useDocumentMeta } from '@/lib/useDocumentMeta';
@@ -53,12 +53,12 @@ function usePrintExtras(code: string, booking: BookingWithRefs | null | undefine
     enabled: Boolean(id),
     queryFn: async (): Promise<PrintExtras> => {
       const [handovers, charges, payments, customer, terms] = await Promise.all([
-        supabase.from('handover_records').select('*').eq('booking_id', id!),
-        supabase.from('booking_charges').select('*').eq('booking_id', id!).order('created_at'),
-        supabase.from('payments').select('*').eq('booking_id', id!).order('received_at'),
+        api.from('handover_records').select('*').eq('booking_id', id!),
+        api.from('booking_charges').select('*').eq('booking_id', id!).order('created_at'),
+        api.from('payments').select('*').eq('booking_id', id!).order('received_at'),
         // Null for Staff outside the booking day (row-level security).
-        supabase.from('customers').select('dl_number, email').eq('id', customerId!).maybeSingle(),
-        supabase
+        api.from('customers').select('dl_number, email').eq('id', customerId!).maybeSingle(),
+        api
           .from('policy_versions')
           .select('version, title, body_md, published_at')
           .eq('kind', 'terms')
@@ -207,7 +207,7 @@ function PrintDocument({
   async function print() {
     setBusy(true);
     // BKA-11: printing is logged (AUD-01). Never let logging stop the print.
-    const log = supabase
+    const log = api
       .rpc('log_client_event', {
         p_action: 'booking.print',
         p_entity_type: 'bookings',

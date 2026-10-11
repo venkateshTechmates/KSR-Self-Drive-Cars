@@ -4,22 +4,12 @@ import type { AppRole } from '@shared/constants.ts';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import { useAuth } from './AuthProvider';
 
 /** Signed in, active, with a role and (where required) two-step verification done. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { loading, session, access, role, needsMfa, accessError, refreshAccess, signOut } = useAuth();
   const location = useLocation();
-  if (!isSupabaseConfigured) {
-    return (
-      <div className="mx-auto max-w-lg p-6">
-        <EmptyState title="The admin needs a Supabase project">
-          Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (see README), then reload.
-        </EmptyState>
-      </div>
-    );
-  }
   if (session && !access && accessError && !loading) {
     return (
       <div className="mx-auto max-w-lg p-6">

@@ -11,6 +11,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts', 'src/**/*.test.{ts,tsx}'],
     testTimeout: 60000,
+    // Server modules read these at import: keep test data out of ./data and don't start jobs.
+    env: { DATA_DIR: './node_modules/.tmp/test-data', RUN_JOBS: 'false', NODE_ENV: 'test' },
     hookTimeout: 120000,
   },
 });

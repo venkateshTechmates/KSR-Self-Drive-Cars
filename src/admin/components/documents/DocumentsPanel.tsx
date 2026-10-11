@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/Dialog';
 import { Card, CardHeader, EmptyState } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { downloadDocument } from '@/lib/documents';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatBytes, formatDateTime } from '@/lib/format';
@@ -39,7 +39,7 @@ export function useOwnerDocuments(ownerType: DocOwnerType, ownerId: string | nul
   return useQuery({
     queryKey: [...qk.documentsFor(ownerType, ownerId), includeDeleted],
     queryFn: async () => {
-      let q = supabase.from('documents').select('*').eq('owner_type', ownerType);
+      let q = api.from('documents').select('*').eq('owner_type', ownerType);
       if (ownerType !== 'business') q = q.eq('owner_id', ownerId!);
       if (!includeDeleted) q = q.is('deleted_at', null);
       return unwrap(await q.order('created_at', { ascending: false })) as DocumentRow[];
@@ -76,7 +76,7 @@ export function DocumentsPanel({ ownerType, ownerId, title = 'Documents', descri
   const refresh = () => queryClient.invalidateQueries({ queryKey: qk.documents });
 
   async function rpc(name: string, args: Record<string, unknown>, ok: string) {
-    unwrap(await supabase.rpc(name, args));
+    unwrap(await api.rpc(name, args));
     toast.success(ok);
     await refresh();
   }

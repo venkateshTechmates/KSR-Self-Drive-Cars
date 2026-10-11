@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, Field, Input, Select } from '@/components/ui/Field';
 import { EmptyState, PageHeader, Toolbar } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDateTime, istDateIso } from '@/lib/format';
@@ -71,7 +71,7 @@ export default function AuditLogPage() {
     initialPageParam: 0,
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }) => {
-      let q = supabase.from('audit_logs').select('*');
+      let q = api.from('audit_logs').select('*');
       if (filters.actor === 'system') q = q.is('actor_id', null);
       else if (filters.actor) q = q.eq('actor_id', filters.actor);
       if (filters.prefix) q = q.like('action', `${likeEscape(filters.prefix)}%`);
@@ -97,7 +97,7 @@ export default function AuditLogPage() {
     queryFn: async () => {
       const map: Record<string, string> = {};
       for (let i = 0; i < bookingIds.length; i += 100) {
-        const rows = unwrap(await supabase.from('bookings').select('id, booking_code').in('id', bookingIds.slice(i, i + 100))) as Array<{
+        const rows = unwrap(await api.from('bookings').select('id, booking_code').in('id', bookingIds.slice(i, i + 100))) as Array<{
           id: string;
           booking_code: string;
         }>;

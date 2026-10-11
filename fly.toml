@@ -1,0 +1,49 @@
+# Fly.io configuration for KSR Self Drive Cars. See Docs/DEPLOY.md.
+# SQLite lives on the "ksr_data" volume, so run exactly ONE machine: never `fly scale count 2`.
+
+app = "ksr-self-drive-cars"   # change to your app name (fly apps create <name>)
+primary_region = "bom"        # Mumbai
+
+[build]
+  dockerfile = "Dockerfile"
+
+  # Baked into the static site at build time; use the same address as SITE_URL.
+  [build.args]
+    VITE_SITE_URL = "https://ksr-self-drive-cars.fly.dev"
+    VITE_PLAUSIBLE_DOMAIN = ""
+
+[env]
+  NODE_ENV = "production"
+  DATA_DIR = "/data"
+  PORT = "8080"
+  SITE_URL = "https://ksr-self-drive-cars.fly.dev"   # your public address, no trailing slash
+  TRUST_PROXY = "true"
+  # Secrets (APP_SECRET, RATE_LIMIT_SALT, SMTP_*, OWNER_*) are set with `fly secrets set`.
+
+[mounts]
+  source = "ksr_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Always on: scheduled jobs (emails, reminders, retention, backups) run inside the app.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "30s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

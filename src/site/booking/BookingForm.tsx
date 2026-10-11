@@ -447,10 +447,7 @@ function Confirmation({
     <div role="status" className={cn('flex flex-col gap-[18px]', variant === 'sheet' && 'overflow-y-auto px-6 pt-9 pb-7 md:px-8')}>
       <CheckCircle size={48} className="text-action" />
       <h2 className="display m-0 text-[44px] leading-[0.95]">Request sent</h2>
-      {s.demo ? (
-        <Alert tone="warning">Preview mode: this request was not sent. Connect the Supabase project to take real bookings.</Alert>
-      ) : (
-        <p className="m-0 text-base text-ink-2">
+      <p className="m-0 text-base text-ink-2">
           {s.code ? (
             <>
               Your booking code is <strong className="font-mono">{s.code}</strong>.{' '}
@@ -458,7 +455,6 @@ function Confirmation({
           ) : null}
           We&apos;ll call you on <strong>{formatPhone(s.phone)}</strong> to confirm.
         </p>
-      )}
       <div className="flex flex-col gap-3.5 rounded-[18px] bg-ink p-5 text-night-text">
         <div className="self-start">
           <BigPlate size="md">{formatRupees(s.pricePaise)}</BigPlate>

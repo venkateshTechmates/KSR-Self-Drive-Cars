@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, Field, Select } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader, DataTable, EmptyState, PageHeader, Toolbar, type Column } from '@/components/ui/Layout';
 import { PageSpinner } from '@/components/ui/Spinner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { cn } from '@/lib/cn';
 import { downloadCsv } from '@/lib/csv';
 import { errorMessage } from '@/lib/errors';
@@ -69,7 +69,7 @@ export default function PaymentsPage() {
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchAll<PaymentWithBooking>((a, b) => {
-        let q = supabase.from('payments').select(PAYMENT_SELECT).gte('received_at', bounds!.fromTs).lt('received_at', bounds!.toTs);
+        let q = api.from('payments').select(PAYMENT_SELECT).gte('received_at', bounds!.fromTs).lt('received_at', bounds!.toTs);
         if (type) q = q.eq('type', type);
         if (method) q = q.eq('method', method);
         if (receivedBy) q = q.eq('received_by', receivedBy);
@@ -283,7 +283,7 @@ function Outstanding() {
     queryFn: async () => {
       // PostgREST can't compare two columns, so narrow on the server and finish here.
       const rows = await fetchAll<BookingWithRefs>((a, b) =>
-        supabase
+        api
           .from('bookings')
           .select(BOOKING_SELECT)
           .in('status', OUTSTANDING_STATUSES)

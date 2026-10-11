@@ -1,7 +1,7 @@
 // Query hooks shared by several admin screens. Area-specific queries live next to their pages.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { withDefaults, type SettingsKey, type SettingsMap } from '@shared/settings.ts';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/integrations/api/client';
 import { unwrap } from '@/lib/errors';
 import type { Car, DocumentType, StaffProfile, UserRole } from '@/types/db';
 
@@ -29,7 +29,7 @@ export function useSetting<K extends SettingsKey>(key: K) {
   return useQuery({
     queryKey: qk.setting(key),
     queryFn: async (): Promise<SettingsMap[K]> => {
-      const row = unwrap(await supabase.from('settings').select('value').eq('key', key).maybeSingle());
+      const row = unwrap(await api.from('settings').select('value').eq('key', key).maybeSingle());
       return withDefaults(key, (row as { value: unknown } | null)?.value);
     },
     staleTime: 5 * 60_000,
@@ -40,8 +40,7 @@ export function useSaveSetting<K extends SettingsKey>(key: K) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (value: SettingsMap[K]) => {
-      const { data: auth } = await supabase.auth.getUser();
-      unwrap(await supabase.from('settings').upsert({ key, value, updated_by: auth.user?.id ?? null }).select('key'));
+      unwrap(await api.from('settings').upsert({ key, value }).select('key'));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: qk.settings }),
   });
@@ -51,7 +50,7 @@ export function useSaveSetting<K extends SettingsKey>(key: K) {
 export function useCars() {
   return useQuery({
     queryKey: qk.cars,
-    queryFn: async () => unwrap(await supabase.from('cars').select('*').order('sort_order').order('display_name')) as Car[],
+    queryFn: async () => unwrap(await api.from('cars').select('*').order('sort_order').order('display_name')) as Car[],
     staleTime: 60_000,
   });
 }
@@ -59,7 +58,7 @@ export function useCars() {
 export function useDocumentTypes() {
   return useQuery({
     queryKey: qk.documentTypes,
-    queryFn: async () => unwrap(await supabase.from('document_types').select('*').order('sort_order')) as DocumentType[],
+    queryFn: async () => unwrap(await api.from('document_types').select('*').order('sort_order')) as DocumentType[],
     staleTime: 10 * 60_000,
   });
 }
@@ -73,8 +72,8 @@ export function useStaffDirectory() {
   return useQuery({
     queryKey: qk.staff,
     queryFn: async () => {
-      const profiles = unwrap(await supabase.from('staff_profiles').select('*').order('full_name')) as StaffProfile[];
-      const roles = (unwrap(await supabase.from('user_roles').select('user_id, role')) ?? []) as Pick<UserRole, 'user_id' | 'role'>[];
+      const profiles = unwrap(await api.from('staff_profiles').select('*').order('full_name')) as StaffProfile[];
+      const roles = (unwrap(await api.from('user_roles').select('user_id, role')) ?? []) as Pick<UserRole, 'user_id' | 'role'>[];
       const roleOf = new Map(roles.map((r) => [r.user_id, r.role]));
       return profiles.map((p) => ({ ...p, role: roleOf.get(p.user_id) ?? null })) as StaffMember[];
     },

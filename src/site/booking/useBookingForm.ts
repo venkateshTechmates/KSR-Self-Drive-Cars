@@ -15,7 +15,6 @@ import {
   validatePickup,
   type BookingField,
 } from '@shared/validation.ts';
-import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import { track } from '@/lib/analytics';
 import { AppError } from '@/lib/errors';
 import { callFunction } from '@/lib/functions';
@@ -41,7 +40,6 @@ export interface SentBooking {
   pickupAt: Date;
   returnAt: Date;
   pricePaise: number;
-  demo: boolean;
 }
 
 type SubmitResponse =
@@ -153,15 +151,11 @@ export function useBookingForm(cars: PublicCar[], config: PublicConfig, initialC
     const leadHours = Math.round((v.value.pickup_at.getTime() - Date.now()) / MS_HOUR);
     const base = { phone: v.value.phone, car: car!, pkg, pickupAt: v.value.pickup_at, returnAt: computeReturn(v.value.pickup_at, pkg), pricePaise: price };
 
-    if (!isSupabaseConfigured) {
-      setSent({ ...base, code: null, demo: true });
-      return;
-    }
     setSending(true);
     try {
       const res = await callFunction<SubmitResponse>('submit-booking', { anonymous: true, body: { ...input, pickup_time: effectiveTime, locale: 'en' } });
       if (res.ok) {
-        setSent({ ...base, code: res.booking_code, demo: false });
+        setSent({ ...base, code: res.booking_code });
         track('booking_submitted', { car_slug: car!.slug, package: pkg, lead_time_hours: leadHours });
       } else {
         setClash({ message: res.message || MESSAGES.carClash, suggestions: res.suggestions ?? [] });
