@@ -17,7 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@shared/*": ["supabase/functions/_shared/domain/*"]
+      "@shared/*": ["shared/*"]
     }
   },
   "include": ["vite.config.ts", "vitest.config.ts", "tests"]

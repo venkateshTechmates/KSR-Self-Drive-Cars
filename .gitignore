@@ -11,3 +11,6 @@ supabase/.temp
 supabase/.branches
 *.log
 .DS_Store
+
+# SQLite database, uploaded files, backups and the generated app secret
+data
