@@ -99,6 +99,8 @@ export async function drainOutbox(limit = 50): Promise<DrainResult> {
     else if (!smtpConfigured()) skipReason = NOT_CONFIGURED;
     else if (recipients.length === 0) skipReason = 'No recipients';
     if (skipReason) {
+      // Subjects carry booking codes and car names, not customer details.
+      console.info(`[notify] not sent (${skipReason}): "${row.subject}"`);
       finish(row.id, 'skipped', skipReason);
       result.skipped++;
       continue;

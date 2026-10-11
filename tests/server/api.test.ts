@@ -165,7 +165,8 @@ describe('data API policies', () => {
   });
 
   it('staff see today ± 1 day, and customers only for today, also inside embeds (AC-10)', async () => {
-    const today = rawBooking('toyota-glanza', 1);
+    // Pickup now: always today in IST (now + 1 hour is tomorrow after 23:00 IST).
+    const today = rawBooking('toyota-glanza', 0);
     const tomorrow = rawBooking('hyundai-i20', 20);
     const nextWeek = rawBooking('maruti-baleno', 24 * 7);
     const sel = '*, car:cars(id, display_name), customer:customers(id, full_name)';

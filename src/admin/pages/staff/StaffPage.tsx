@@ -284,9 +284,22 @@ export default function StaffPage() {
 
 // ---------------------------------------------------------------- dialogs
 
-function RoleSelect({ value, onChange, disabled }: { value: AppRole; onChange: (r: AppRole) => void; disabled?: boolean }) {
+/** `id` and the aria props come from the wrapping <Field>, so the label points at this select. */
+function RoleSelect({
+  value,
+  onChange,
+  disabled,
+  ...aria
+}: {
+  value: AppRole;
+  onChange: (r: AppRole) => void;
+  disabled?: boolean;
+  id?: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
+}) {
   return (
-    <Select value={value} onChange={(e) => onChange(e.target.value as AppRole)} disabled={disabled}>
+    <Select {...aria} value={value} onChange={(e) => onChange(e.target.value as AppRole)} disabled={disabled}>
       {APP_ROLES.map((r) => (
         <option key={r} value={r}>
           {ROLE_LABELS[r]}
