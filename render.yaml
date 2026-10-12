@@ -35,6 +35,13 @@ services:
         sync: false
       - key: VITE_PLAUSIBLE_DOMAIN
         sync: false
+      # Cloudinary file store: cloudinary://<api key>:<api secret>@<cloud name>. Customer
+      # documents are stored private (authenticated); car photos are served from its CDN.
+      # Leave empty to keep files on the disk.
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: ksr
       # Email (any SMTP provider). Leave SMTP_HOST empty to log emails instead of sending.
       - key: SMTP_HOST
         sync: false
@@ -48,6 +55,10 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      # Two-step verification is switched off for the trial. Delete these two lines (or set
+      # "on") to switch it back on; Admin › Settings › Security then decides who needs it.
+      - key: TWO_STEP
+        value: "off"
       # First boot only: creates the Owner account. Remove OWNER_PASSWORD after signing in.
       - key: OWNER_EMAIL
         sync: false

@@ -1,6 +1,7 @@
 // Account and audit RPCs: my_access, log_client_event, current_notice_version.
 import { mfaRequired, type Ctx } from '../access/context.ts';
 import { writeAudit } from '../audit.ts';
+import { config } from '../config.ts';
 import { one } from '../db/connection.ts';
 import { forbidden, fail } from '../errors.ts';
 import { currentNoticeVersion, getSetting } from '../settings.ts';
@@ -21,6 +22,8 @@ export function myAccess(ctx: Ctx) {
     full_name: profile?.full_name ?? null,
     active: profile?.active === 1,
     security: getSetting('security'),
+    /** TWO_STEP=off on the server: nobody is asked for a code (Settings › Security says so). */
+    two_step_switched_off: !config.twoStep,
   };
 }
 

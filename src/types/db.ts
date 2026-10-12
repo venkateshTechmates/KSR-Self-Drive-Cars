@@ -399,6 +399,8 @@ export interface MyAccess {
   full_name: string | null;
   active: boolean;
   security: Record<string, unknown>;
+  /** The server has TWO_STEP=off. */
+  two_step_switched_off?: boolean;
 }
 
 export interface Clash {

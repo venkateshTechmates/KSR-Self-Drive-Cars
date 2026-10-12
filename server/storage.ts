@@ -1,12 +1,15 @@
-// Files on the persistent disk, under config.filesDir (6.8.3, 10.5):
+// File storage (6.8.3, 10.5), in two buckets:
 //   documents/<storage_path>    private documents, served only through signed links
 //   car-photos/<path>           public fleet photos (cars/<car_id>/<photo_id>[-800|-400].webp)
+// Stored in Cloudinary when CLOUDINARY_URL is set (server/cloudinary.ts), otherwise on the
+// persistent disk under config.filesDir. Files already on the disk are still read from there.
 // Paths come from the database or from requests, so every one is validated strictly before
 // it touches the file system: relative, no "." or ".." segments, only [A-Za-z0-9/_.-].
 import { createReadStream } from 'node:fs';
 import { mkdir, rmdir, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, sep } from 'node:path';
 import { Readable } from 'node:stream';
+import { cloudExists, cloudinaryEnabled, cloudOpen, cloudRemove, cloudSave } from './cloudinary.ts';
 import { config } from './config.ts';
 
 export type Bucket = 'documents' | 'car-photos';
@@ -47,8 +50,15 @@ export function storageFile(bucket: Bucket, path: string): string {
 
 const errCode = (err: unknown) => (err as NodeJS.ErrnoException | null)?.code;
 
-/** Save a new file (creating folders). Never overwrites: throws FileExistsError instead. */
+/**
+ * Save a new file: to Cloudinary when CLOUDINARY_URL is set (server/cloudinary.ts), else to
+ * the disk (creating folders). Never overwrites: throws FileExistsError instead.
+ */
 export async function saveFile(bucket: Bucket, path: string, bytes: Uint8Array): Promise<void> {
+  if (cloudinaryEnabled()) {
+    if ((await localStat(bucket, path)) || (await cloudSave(bucket, path, bytes)) === 'exists') throw new FileExistsError();
+    return;
+  }
   const full = storageFile(bucket, path);
   for (let attempt = 0; ; attempt++) {
     await mkdir(dirname(full), { recursive: true });
@@ -72,27 +82,36 @@ export interface StoredFile {
   stream: ReadableStream<Uint8Array>;
 }
 
-/** Open a file for streaming, or null when it doesn't exist. */
-export async function openFile(bucket: Bucket, path: string): Promise<StoredFile | null> {
-  const full = storageFile(bucket, path);
+/** Size of a file on the disk, or null when it isn't there. */
+async function localStat(bucket: Bucket, path: string): Promise<number | null> {
   try {
-    const info = await stat(full);
-    if (!info.isFile()) return null;
-    const stream = Readable.toWeb(createReadStream(full)) as unknown as ReadableStream<Uint8Array>;
-    return { size: info.size, stream };
+    const info = await stat(storageFile(bucket, path));
+    return info.isFile() ? info.size : null;
   } catch (err) {
     if (errCode(err) === 'ENOENT' || errCode(err) === 'ENOTDIR') return null;
     throw err;
   }
 }
 
-export async function fileExists(bucket: Bucket, path: string): Promise<boolean> {
-  try {
-    return (await stat(storageFile(bucket, path))).isFile();
-  } catch (err) {
-    if (errCode(err) === 'ENOENT' || errCode(err) === 'ENOTDIR') return false;
-    throw err;
+/** Is the file on this server's disk (as opposed to Cloudinary)? */
+export const localFileExists = async (bucket: Bucket, path: string) => (await localStat(bucket, path)) !== null;
+
+/**
+ * Open a file for streaming, or null when it doesn't exist. Files saved on the disk before
+ * Cloudinary was switched on are still read from the disk.
+ */
+export async function openFile(bucket: Bucket, path: string): Promise<StoredFile | null> {
+  const size = await localStat(bucket, path);
+  if (size !== null) {
+    const stream = Readable.toWeb(createReadStream(storageFile(bucket, path))) as unknown as ReadableStream<Uint8Array>;
+    return { size, stream };
   }
+  return cloudinaryEnabled() ? cloudOpen(bucket, path) : null;
+}
+
+export async function fileExists(bucket: Bucket, path: string): Promise<boolean> {
+  if ((await localStat(bucket, path)) !== null) return true;
+  return cloudinaryEnabled() ? cloudExists(bucket, path) : false;
 }
 
 /**
@@ -119,5 +138,6 @@ export async function removeFiles(bucket: Bucket, paths: readonly string[]): Pro
       }
     }
   }
+  if (cloudinaryEnabled()) await cloudRemove(bucket, paths);
   return removed;
 }

@@ -25,6 +25,11 @@ Object.assign(process.env, {
   SMTP_HOST: '',
   SMTP_USER: '',
   SMTP_PASS: '',
+  // Files stay on the test disk, never in a real Cloudinary account from a local .env.
+  CLOUDINARY_URL: '',
+  CLOUDINARY_CLOUD_NAME: '',
+  CLOUDINARY_API_KEY: '',
+  CLOUDINARY_API_SECRET: '',
 });
 
 const { openAndMigrate, bootstrapOwnerFromEnv } = await import('../server/boot.ts');

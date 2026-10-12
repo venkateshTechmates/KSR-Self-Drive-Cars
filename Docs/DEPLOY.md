@@ -33,6 +33,9 @@ The guides below cover **Fly.io** (Mumbai, closest to customers in India), **Ren
 | `VITE_PLAUSIBLE_DOMAIN` | No (build) | Plausible analytics domain. Leave empty to disable. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Recommended | Email for booking alerts, staff invites, password resets and reminders. Any SMTP provider works (Gmail/Google Workspace with an app password, Zoho Mail `smtp.zoho.in`, Outlook `smtp.office365.com`, Brevo, Mailgun, Amazon SES). Port 587 → `SMTP_SECURE=false`; port 465 → `SMTP_SECURE=true`. Without `SMTP_HOST`, emails are written to the server log instead, queued alerts are marked "skipped", and invite links are handed to the Owner to pass on. |
 | `OWNER_EMAIL`, `OWNER_PASSWORD`, `OWNER_NAME` | First start | Creates the Owner account on the first start (only if no Owner exists). Remove `OWNER_PASSWORD` after you have signed in. |
+| `CLOUDINARY_URL` | Recommended | `cloudinary://<api key>:<api secret>@<cloud name>` (Cloudinary dashboard → API Keys). Uploaded files go to Cloudinary instead of the disk: customer documents as private (authenticated) files that only the server can fetch, still shown to staff through 5-minute signed links with every view logged; car photos on Cloudinary's CDN. Files already on the disk keep working; `npm run files-to-cloudinary` moves them. The SQLite database and its backups stay on the disk. |
+| `CLOUDINARY_FOLDER` | No | Folder in Cloudinary (default `ksr`). Use another one, e.g. `ksr-dev`, for local development. |
+| `TWO_STEP` | No | `off` switches two-step verification off for everyone (for a trial period). Remove it to switch back on; **Admin › Settings › Security** then decides which roles need it. Authenticator setups are kept. |
 
 Set by the Docker image (normally leave alone): `NODE_ENV=production`, `DATA_DIR=/data`,
 `PORT=8080`. `TRUST_PROXY=true` (the default) is right on all three platforms.

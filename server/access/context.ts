@@ -1,6 +1,7 @@
 // Who is making a request: the signed-in user, their role, and whether two-step
 // verification is satisfied. Replaces auth.uid() / my_role() from the Supabase version.
 import type { AppRole } from '../../shared/constants.ts';
+import { config } from '../config.ts';
 import { one } from '../db/connection.ts';
 import { getSetting } from '../settings.ts';
 
@@ -28,6 +29,7 @@ export function systemCtx(): Ctx {
 }
 
 export function mfaRequired(role: AppRole): boolean {
+  if (!config.twoStep) return false; // TWO_STEP=off (server/config.ts)
   return getSetting('security').mfa_required_roles.includes(role);
 }
 

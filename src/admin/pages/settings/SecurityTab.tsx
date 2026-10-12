@@ -20,7 +20,7 @@ export function SecurityTab() {
 
 function SecurityForm({ initial }: { initial: SecuritySettings }) {
   const save = useSaveSetting('security');
-  const { refreshAccess } = useAuth();
+  const { access, refreshAccess } = useAuth();
   const toForm = (s: SecuritySettings) => ({
     mfa_required_roles: APP_ROLES.filter((r) => s.mfa_required_roles.includes(r)),
     session_hours: String(s.session_hours),
@@ -66,6 +66,12 @@ function SecurityForm({ initial }: { initial: SecuritySettings }) {
         title="Two-step verification"
         description="People in these roles must enter a code from an authenticator app before they can see any data."
       >
+        {access?.two_step_switched_off && (
+          <Alert tone="warning" title="Switched off on the server">
+            The server has TWO_STEP=off, so nobody is asked for a code right now. These choices apply again when that setting is removed;
+            authenticator apps that are already set up keep working.
+          </Alert>
+        )}
         <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
           <legend className="sr-only">Roles that must use two-step verification</legend>
           {APP_ROLES.map((r) => (

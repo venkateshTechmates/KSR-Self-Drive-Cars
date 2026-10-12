@@ -3,14 +3,17 @@
 //   EXPO_PUBLIC_API_URL   the KSR server the app talks to by default (the app's Settings
 //                         screen can change it). Default: the live site on Render.
 //   KSR_ALLOW_HTTP=1      allow plain http (test builds that talk to a computer, not https).
-import type { ExpoConfig } from 'expo/config';
+import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 const apiUrl = (process.env.EXPO_PUBLIC_API_URL ?? 'https://ksr-self-drive-cars.onrender.com').replace(/\/+$/, '');
 const allowHttp = apiUrl.startsWith('http://') || process.env.KSR_ALLOW_HTTP === '1';
 
 const INK = '#1d2125';
 
-const config: ExpoConfig = {
+// app.json holds only what EAS writes there itself (the project id and owner after
+// `eas init`); everything else is here.
+export default ({ config }: ConfigContext): ExpoConfig => ({
+  ...config,
   name: 'KSR Cars',
   slug: 'ksr-self-drive-cars',
   scheme: 'ksrcars',
@@ -52,7 +55,5 @@ const config: ExpoConfig = {
     ],
   ],
   experiments: { typedRoutes: true },
-  extra: { apiUrl },
-};
-
-export default config;
+  extra: { ...config.extra, apiUrl },
+});

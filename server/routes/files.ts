@@ -14,7 +14,8 @@ import { signPayload, verifyPayload } from '../auth/crypto.ts';
 import { one } from '../db/connection.ts';
 import { ApiError } from '../errors.ts';
 import { requireUser, type AppEnv } from '../http.ts';
-import { FileExistsError, isValidStoragePath, openFile, removeFiles, saveFile } from '../storage.ts';
+import { carPhotoCdnUrl, cloudinaryEnabled } from '../cloudinary.ts';
+import { FileExistsError, isValidStoragePath, localFileExists, openFile, removeFiles, saveFile } from '../storage.ts';
 
 export const fileRoutes = new Hono<AppEnv>();
 
@@ -161,7 +162,13 @@ fileRoutes.post('/api/storage/car-photos/remove', ownerOrManager, async (c) => {
 
 fileRoutes.get('/media/car-photos/*', async (c) => {
   const path = c.req.path.slice(MEDIA_PREFIX.length);
-  const file = CAR_PHOTO_RE.test(path) && isValidStoragePath(path) ? await openFile('car-photos', path) : null;
+  if (!CAR_PHOTO_RE.test(path) || !isValidStoragePath(path)) return c.text('Not found', 404, { 'Cache-Control': 'no-store' });
+  // Photos kept on the disk are served from here; the rest come from Cloudinary's CDN.
+  const file = (await localFileExists('car-photos', path)) || !cloudinaryEnabled() ? await openFile('car-photos', path) : null;
+  if (!file && cloudinaryEnabled()) {
+    c.header('Cache-Control', 'public, max-age=86400');
+    return c.redirect(carPhotoCdnUrl(path), 302);
+  }
   if (!file) return c.text('Not found', 404, { 'Cache-Control': 'no-store' });
   return c.body(file.stream, 200, {
     'Content-Type': 'image/webp',

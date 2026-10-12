@@ -12,6 +12,12 @@ const stopJobs = config.runJobs ? startScheduler() : () => {};
 const server = serve({ fetch: createApp().fetch, port: config.port }, (info) => {
   console.info(`[ksr] listening on http://localhost:${info.port} (data: ${config.dataDir})`);
   if (!smtpConfigured()) console.info('[ksr] SMTP is not configured: emails are written to this log instead of being sent.');
+  if (!config.twoStep) console.warn('[ksr] TWO_STEP=off: two-step verification is switched off for everyone.');
+  console.info(
+    config.cloudinary
+      ? `[ksr] Files: Cloudinary (cloud ${config.cloudinary.cloudName}, folder ${config.cloudinary.folder}); files already on the disk are still read from it.`
+      : `[ksr] Files: on the disk (${config.filesDir}). Set CLOUDINARY_URL to use Cloudinary.`,
+  );
   if (!hasOwner()) console.info('[ksr] No Owner yet. Run `npm run create-owner -- --email you@example.com --name "Your name"`, or set OWNER_EMAIL/OWNER_PASSWORD.');
 });
 

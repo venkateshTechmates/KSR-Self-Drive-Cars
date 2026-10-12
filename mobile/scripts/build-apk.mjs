@@ -46,9 +46,13 @@ function run(cmd, cwd = app) {
   }
 }
 
+// --clean regenerates android/ from app.config.ts (it is generated, never edited by hand).
 run('npx expo prebuild --platform android --clean --no-install');
 writeFileSync(join(app, 'android', 'local.properties'), `sdk.dir=${sdk.replaceAll('\\', '\\\\').replaceAll(':', '\\:')}\n`);
-run(`"${join(app, 'android', win ? 'gradlew.bat' : 'gradlew')}" assembleRelease --no-daemon`, join(app, 'android'));
+// Phones only (64- and 32-bit ARM; the x86 emulator build is skipped), 2 workers and the
+// Kotlin compiler inside Gradle: keeps memory use within a 16 GB laptop's reach.
+const gradleArgs = ['assembleRelease', '--no-daemon', '--max-workers=2', '-PreactNativeArchitectures=arm64-v8a,armeabi-v7a', '-Pkotlin.compiler.execution.strategy=in-process'];
+run(`"${join(app, 'android', win ? 'gradlew.bat' : 'gradlew')}" ${gradleArgs.join(' ')}`, join(app, 'android'));
 
 const apk = join(app, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
 const outDir = resolve(app, '..', 'release');
