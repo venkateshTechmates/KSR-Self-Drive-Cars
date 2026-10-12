@@ -14,8 +14,9 @@ coverage
 # Local data: SQLite database, uploaded files, backups, generated app secret
 data
 
-# The Android app is built separately (npm run android:apk)
+# The Android apps are built separately (npm run android:apk, mobile/)
 android
+mobile
 app-shell
 assets
 release

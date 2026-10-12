@@ -28,7 +28,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types --disable-warning=ExperimentalWarning test/*.test.ts",
+    "test": "cd .. && npx vitest run mobile/test",
     "apk": "node scripts/build-apk.mjs",
     "export:android": "expo export --platform android --output-dir dist-check"
   },

@@ -15,6 +15,7 @@ folder under `DATA_DIR`. Deploy it as one Docker container with a persistent dis
 | Admin (`/admin`) | Dashboard, bookings, handover and return, calendar, fleet, customers, document centre, payments, reports, privacy requests, settings, staff, audit log |
 | Server (`server/`) | Hono on Node 24 with the built-in `node:sqlite`; sign-in with two-step verification; business rules; private file storage; email; scheduled jobs and daily backups |
 | Android app (`android/`) | One app for customers and staff: the website in a native shell with camera, share sheet, back button and offline page ([`Docs/ANDROID.md`](Docs/ANDROID.md)) |
+| React Native app (`mobile/`) | Native screens (Expo) for booking, booking status and the staff dashboard, bookings and payments, plus the full web admin inside ([`mobile/README.md`](mobile/README.md)) |
 
 > The previous Supabase version is kept on the git branch `supabase-backend`.
 
@@ -47,6 +48,7 @@ tests/unit/               shared domain rules
 e2e/                      Playwright end-to-end tests against the built app with demo data
 android/                  the Android app (Capacitor): native project, icons, MainActivity
 app-shell/                the offline page bundled inside the Android app
+mobile/                   the React Native app (Expo): src/app screens, src/lib API client, reuses shared/
 ```
 
 ## Run locally
