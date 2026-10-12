@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KSR Self Drive Cars</string>
+    <string name="title_activity_main">KSR Self Drive Cars</string>
+    <string name="package_name">com.ksrselfdrivecars.app</string>
+    <string name="custom_url_scheme">com.ksrselfdrivecars.app</string>
+</resources>

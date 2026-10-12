@@ -94,7 +94,7 @@ export default function PaymentsPage() {
         rows: rows.length,
         source: 'payments',
       });
-      downloadCsv(`ksr-payments_${rangeFileSuffix(range)}.csv`, PAYMENT_CSV_HEADERS, paymentCsvRows(rows, staffName));
+      await downloadCsv(`ksr-payments_${rangeFileSuffix(range)}.csv`, PAYMENT_CSV_HEADERS, paymentCsvRows(rows, staffName));
       toast.success(`Downloaded ${pluralize(rows.length, 'payment')}.`);
     } catch (err) {
       toast.error(errorMessage(err));

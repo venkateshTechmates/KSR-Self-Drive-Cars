@@ -9,6 +9,7 @@ import { formatIsoDate } from '@shared/time.ts';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Field';
 import { api } from '@/integrations/api/client';
+import { saveFile } from '@/lib/download';
 import { getDocumentUrl } from '@/lib/documents';
 import { AppError, errorMessage, unwrap } from '@/lib/errors';
 import { istDateIso } from '@/lib/format';
@@ -58,14 +59,7 @@ export function CarPapersTab({ car }: { car: Car }) {
       setZipping('Making the ZIP…');
       // Images and PDFs are already compressed, so store them as they are.
       const zipped = zipSync(files, { level: 0 });
-      const url = URL.createObjectURL(new Blob([new Uint8Array(zipped)], { type: 'application/zip' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${car.slug}-papers.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      await saveFile(new Blob([new Uint8Array(zipped)], { type: 'application/zip' }), `${car.slug}-papers.zip`);
       unwrap(
         await api.rpc('log_client_event', {
           p_action: 'documents.bulk_download',

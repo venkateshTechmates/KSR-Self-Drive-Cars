@@ -14,3 +14,9 @@ supabase/.branches
 
 # SQLite database, uploaded files, backups and the generated app secret
 data
+
+# Android app: built APK/AAB copies, icon sources (npm run android:assets) and upload keys
+/release
+/assets
+*.jks
+*.keystore

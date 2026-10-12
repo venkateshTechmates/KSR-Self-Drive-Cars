@@ -5,6 +5,7 @@ import { sha256Hex } from '@shared/documents.ts';
 import type { DocumentRow } from '@/types/db';
 import { callFunction } from './functions';
 import { prepareDocumentFile } from './images';
+import { saveFromUrl } from './download';
 
 export interface UploadDocumentInput {
   ownerType: DocOwnerType;
@@ -66,16 +67,10 @@ export function getDocumentUrl(documentId: string, opts: { download?: boolean } 
   });
 }
 
-/** Download through a signed link, keeping the original file name. */
+/** Download through a signed link, keeping the original file name (share sheet in the app). */
 export async function downloadDocument(documentId: string): Promise<void> {
   const signed = await getDocumentUrl(documentId, { download: true });
-  const a = document.createElement('a');
-  a.href = signed.url;
-  a.download = signed.filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  await saveFromUrl(signed.url, signed.filename);
 }
 
 export interface UploadLinkResult {

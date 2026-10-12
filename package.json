@@ -18,9 +18,20 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
-    "check:queries": "node --disable-warning=ExperimentalWarning scripts/check-queries.ts"
+    "check:queries": "node --disable-warning=ExperimentalWarning scripts/check-queries.ts",
+    "dev:lan": "node scripts/dev.mjs --host",
+    "android:apk": "node scripts/android.mjs apk",
+    "android:usb": "node scripts/android.mjs usb",
+    "android:bundle": "node scripts/android.mjs bundle",
+    "android:open": "cap open android",
+    "android:assets": "node scripts/android-assets.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/share": "^8.0.3",
     "@hono/node-server": "^2.1.4",
     "@tanstack/react-query": "^5.104.1",
     "dompurify": "^3.4.16",
@@ -38,6 +49,8 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.3.3",

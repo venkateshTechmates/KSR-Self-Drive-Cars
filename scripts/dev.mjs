@@ -4,7 +4,8 @@ import { spawn } from 'node:child_process';
 
 const procs = [
   ['api', process.execPath, ['--watch-path=server', '--watch-path=shared', '--disable-warning=ExperimentalWarning', 'server/index.ts'], { PORT: '3000' }],
-  ['web', process.execPath, ['node_modules/vite/bin/vite.js'], {}],
+  // Extra arguments go to Vite, e.g. `npm run dev:lan` (--host) for a phone on the same Wi-Fi.
+  ['web', process.execPath, ['node_modules/vite/bin/vite.js', ...process.argv.slice(2)], {}],
 ].map(([name, cmd, args, env]) => {
   const child = spawn(cmd, args, { env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
   const prefix = (chunk) => chunk.toString().replace(/^(?=.)/gm, `[${name}] `);

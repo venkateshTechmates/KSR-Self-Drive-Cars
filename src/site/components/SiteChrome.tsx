@@ -1,10 +1,12 @@
 // Header (WEB-02), footer (WEB-03), mobile sticky bar and the page shell for public pages.
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
+import { LogIn } from 'lucide-react';
 import { POLICY_LABELS, POLICY_PATHS, POLICY_KINDS } from '@shared/constants.ts';
 import { KsrLogo } from '@/components/brand/Brand';
 import { buttonClass } from '@/components/ui/Button';
 import { track } from '@/lib/analytics';
+import { isAppWebView } from '@/lib/native';
 import { usePublicConfig } from '../hooks/publicData';
 import { contactFrom } from './contact';
 import { PhoneIcon, WhatsAppIcon } from './Icons';
@@ -17,8 +19,19 @@ export function useContact() {
 const YEAR = new Date().getFullYear();
 const navLink = 'py-2.5 font-medium text-ink no-underline hover:text-action';
 
+/** In the app, staff open the admin from the header (customers and staff share one app). */
+function StaffLink() {
+  return (
+    <Link to="/admin" className={buttonClass('secondary', 'sm', 'px-4 text-[15px]')}>
+      <LogIn size={17} aria-hidden="true" />
+      Staff
+    </Link>
+  );
+}
+
 export function SiteHeader({ onBook }: { onBook?: () => void }) {
   const contact = useContact();
+  const inApp = isAppWebView();
   return (
     <header className="border-b border-line">
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 md:py-4">
@@ -52,17 +65,21 @@ export function SiteHeader({ onBook }: { onBook?: () => void }) {
               Call to book
             </a>
           )}
+          {inApp && <StaffLink />}
         </nav>
-        {contact.telHref && (
-          <a
-            href={contact.telHref}
-            aria-label="Call to book"
-            onClick={() => track('call_clicked', { location: 'header' })}
-            className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink text-ink md:hidden"
-          >
-            <PhoneIcon />
-          </a>
-        )}
+        <div className="flex items-center gap-2 md:hidden">
+          {inApp && <StaffLink />}
+          {contact.telHref && (
+            <a
+              href={contact.telHref}
+              aria-label="Call to book"
+              onClick={() => track('call_clicked', { location: 'header' })}
+              className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink text-ink"
+            >
+              <PhoneIcon />
+            </a>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -127,6 +144,12 @@ export function SiteFooter() {
           <Link to="/booking-status" className="text-page hover:text-white">
             Check a booking
           </Link>
+          {/* One app for customers and staff: staff reach the admin from here. */}
+          {isAppWebView() && (
+            <Link to="/admin/login" className="text-page hover:text-white">
+              Staff sign-in
+            </Link>
+          )}
         </div>
         <div className="flex flex-col gap-2.5">
           <h2 className="m-0 mb-1 text-base font-bold">Policies</h2>

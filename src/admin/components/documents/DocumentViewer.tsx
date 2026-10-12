@@ -10,6 +10,7 @@ import { Dialog, DialogFooter } from '@/components/ui/Dialog';
 import { Alert } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Spinner';
 import { api } from '@/integrations/api/client';
+import { saveFile } from '@/lib/download';
 import { downloadDocument, getDocumentUrl } from '@/lib/documents';
 import { encodeCanvas, loadImage } from '@/lib/images';
 import { errorMessage } from '@/lib/errors';
@@ -77,11 +78,7 @@ function ViewerBody({ doc, title, canDownload, onClose }: { doc: DocumentRow; ti
         ctx.drawImage(img, 0, 0);
         drawWatermark(ctx, img.width, img.height, watermark);
         const out = await encodeCanvas(canvas, img.width, img.height, 'image/jpeg', 0.9);
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(out);
-        a.download = s.filename.replace(/\.[^.]+$/, '') + '.jpg';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        await saveFile(out, s.filename.replace(/\.[^.]+$/, '') + '.jpg');
       } else {
         await downloadDocument(doc.id);
       }

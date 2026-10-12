@@ -20,5 +20,5 @@
       "@shared/*": ["shared/*"]
     }
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "tests"]
+  "include": ["vite.config.ts", "vitest.config.ts", "capacitor.config.ts", "tests"]
 }

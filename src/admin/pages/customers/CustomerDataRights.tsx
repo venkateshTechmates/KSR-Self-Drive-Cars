@@ -12,6 +12,7 @@ import { Alert, Field, Textarea } from '@/components/ui/Field';
 import { Card, CardBody, CardHeader } from '@/components/ui/Layout';
 import { Spinner } from '@/components/ui/Spinner';
 import { api } from '@/integrations/api/client';
+import { saveFile } from '@/lib/download';
 import { errorMessage, unwrap } from '@/lib/errors';
 import { formatDate, formatIsoDate, formatPhone, pluralize } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -22,18 +23,7 @@ import { useBookingCounts } from './customerData';
 import { CustomerPicker } from './CustomerPicker';
 import { maskedAadhaar } from './customerSearch';
 
-function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+const downloadJson = (filename: string, data: unknown) => saveFile(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename);
 
 export function DataRightsCard({ customer }: { customer: Customer }) {
   const { role } = useAuth();
@@ -46,7 +36,7 @@ export function DataRightsCard({ customer }: { customer: Customer }) {
     setExporting(true);
     try {
       const data = unwrap(await api.rpc('export_customer_data', { p_customer: customer.id }));
-      downloadJson(`customer-${customer.id}.json`, data);
+      await downloadJson(`customer-${customer.id}.json`, data);
       toast.success('Export downloaded. It was recorded in the audit log.');
     } catch (err) {
       toast.error(errorMessage(err));

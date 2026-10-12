@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colours (src/index.css). -->
+    <color name="ksr_ink">#1D2125</color>
+    <color name="ksr_plate">#FFC72C</color>
+</resources>

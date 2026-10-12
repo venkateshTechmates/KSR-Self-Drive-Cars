@@ -690,7 +690,7 @@ function ExportSection({
           b.customer?.full_name ?? '',
           ...(isOwner ? [formatPhone(b.customer?.phone)] : []),
         ]);
-        downloadCsv(`ksr-bookings_${suffix}.csv`, headers, data);
+        await downloadCsv(`ksr-bookings_${suffix}.csv`, headers, data);
         return rows.length;
       },
       'booking',
@@ -702,7 +702,7 @@ function ExportSection({
       async () => {
         const rows = payments ?? [];
         await logExport('payments.export', 'payments', { from: range.from, to: range.to, rows: rows.length, source: 'reports' });
-        downloadCsv(`ksr-payments_${suffix}.csv`, PAYMENT_CSV_HEADERS, paymentCsvRows(rows, staffName));
+        await downloadCsv(`ksr-payments_${suffix}.csv`, PAYMENT_CSV_HEADERS, paymentCsvRows(rows, staffName));
         return rows.length;
       },
       'payment',
@@ -742,7 +742,7 @@ function ExportSection({
         for (const r of reasonsOf(bookings)) add('Rejection and cancellation reasons', r.reason, 'Bookings', r.total);
         for (const s of sourcesOf(bookings)) add('Sources', s.label, 'Bookings', s.bookings);
         await logExport('report.export', 'reports', { from: range.from, to: range.to, rows: out.length });
-        downloadCsv(`ksr-report-summary_${suffix}.csv`, ['Section', 'Item', 'Measure', 'Value'], out);
+        await downloadCsv(`ksr-report-summary_${suffix}.csv`, ['Section', 'Item', 'Measure', 'Value'], out);
         return out.length;
       },
       'row',

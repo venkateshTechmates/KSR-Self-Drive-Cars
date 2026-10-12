@@ -14,6 +14,7 @@ folder under `DATA_DIR`. Deploy it as one Docker container with a persistent dis
 | Public site (`/`) | Hero, fleet with 12 hr / 24 hr prices and filters, how it works, booking modal (desktop) / full-screen sheet (mobile), car pages, policies, booking lookup, customer document upload link |
 | Admin (`/admin`) | Dashboard, bookings, handover and return, calendar, fleet, customers, document centre, payments, reports, privacy requests, settings, staff, audit log |
 | Server (`server/`) | Hono on Node 24 with the built-in `node:sqlite`; sign-in with two-step verification; business rules; private file storage; email; scheduled jobs and daily backups |
+| Android app (`android/`) | One app for customers and staff: the website in a native shell with camera, share sheet, back button and offline page ([`Docs/ANDROID.md`](Docs/ANDROID.md)) |
 
 > The previous Supabase version is kept on the git branch `supabase-backend`.
 
@@ -44,6 +45,8 @@ shared/                   validation, time (IST), money and booking rules used b
 tests/server/             server tests on a fresh in-memory database (acceptance criteria AC-01…AC-13)
 tests/unit/               shared domain rules
 e2e/                      Playwright end-to-end tests against the built app with demo data
+android/                  the Android app (Capacitor): native project, icons, MainActivity
+app-shell/                the offline page bundled inside the Android app
 ```
 
 ## Run locally
@@ -77,12 +80,22 @@ npm run seed-demo -- --password "choose-a-password"
 
 It prints the booking codes and the two sign-in emails (`manager@ksr.test`, `staff@ksr.test`).
 
+### Android app
+
+```bash
+npm run android:apk -- --url http://<this computer's IPv4>:3000   # test APK for a phone on the same Wi-Fi
+npm run android:usb                                               # or install over USB
+```
+
+The APK lands in `release/`. Publishing on Google Play (signed `.aab` with the live address) is
+in [`Docs/ANDROID.md`](Docs/ANDROID.md).
+
 ### Checks
 
 ```bash
 npm run typecheck       # web app, server, unit and end-to-end tests
 npm run lint
-npm test                # 149 tests: domain rules, booking logic, documents, routes, data API, sign-in, demo data
+npm test                # 161 tests: domain rules, booking logic, documents, routes, data API, sign-in, demo data, Android app helpers
 npm run check:queries   # every table/column the web app queries exists in the schema
 npm run test:e2e        # builds, then 49 Playwright tests in Chrome (desktop and phone)
 ```
